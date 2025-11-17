@@ -135,3 +135,4 @@ SCRDESK is based on [RustDesk](https://github.com/rustdesk/rustdesk), an excelle
 ---
 
 Built with ❤️ using Rust
+
