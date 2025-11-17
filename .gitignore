@@ -58,3 +58,4 @@ flutter/web/
 # SCRDESK server data
 data/
 *.log
+.scrdesk/
