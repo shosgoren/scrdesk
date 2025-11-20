@@ -12,7 +12,7 @@ pub const FILE_CLIPBOARD_NAME: &'static str = "file-clipboard";
 pub const CLIPBOARD_INTERVAL: u64 = 333;
 
 // This format is used to store the flag in the clipboard.
-const RUSTDESK_CLIPBOARD_OWNER_FORMAT: &'static str = "dyn.com.rustdesk.owner";
+const RUSTDESK_CLIPBOARD_OWNER_FORMAT: &'static str = "dyn.com.scrdesk.owner";
 
 // Add special format for Excel XML Spreadsheet
 const CLIPBOARD_FORMAT_EXCEL_XML_SPREADSHEET: &'static str = "XML Spreadsheet";
@@ -76,14 +76,14 @@ pub fn check_clipboard(
 }
 
 #[cfg(all(feature = "unix-file-copy-paste", target_os = "macos"))]
-pub fn is_file_url_set_by_rustdesk(url: &Vec<String>) -> bool {
+pub fn is_file_url_set_by_scrdesk(url: &Vec<String>) -> bool {
     if url.len() != 1 {
         return false;
     }
     url.iter()
         .next()
         .map(|s| {
-            for prefix in &["file:///tmp/.rustdesk_", "//tmp/.rustdesk_"] {
+            for prefix in &["file:///tmp/.scrdesk_", "//tmp/.scrdesk_"] {
                 if s.starts_with(prefix) {
                     return s[prefix.len()..].parse::<uuid::Uuid>().is_ok();
                 }
@@ -283,12 +283,12 @@ impl ClipboardContext {
         // If there're multiple threads or processes trying to access the clipboard at the same time,
         // the previous clipboard owner will fail to access the clipboard.
         // `GetLastError()` will return `ERROR_CLIPBOARD_NOT_OPEN` (OSError(1418): Thread does not have a clipboard open) at this time.
-        // See https://github.com/rustdesk-org/arboard/blob/747ab2d9b40a5c9c5102051cf3b0bb38b4845e60/src/platform/windows.rs#L34
+        // See https://github.com/scrdesk-org/arboard/blob/747ab2d9b40a5c9c5102051cf3b0bb38b4845e60/src/platform/windows.rs#L34
         //
         // This is a common case on Windows, so we retry here.
         // Related issues:
-        // https://github.com/rustdesk/rustdesk/issues/9263
-        // https://github.com/rustdesk/rustdesk/issues/9222#issuecomment-2329233175
+        // https://github.com/scrdesk/scrdesk/issues/9263
+        // https://github.com/scrdesk/scrdesk/issues/9222#issuecomment-2329233175
         for i in 0..CLIPBOARD_GET_MAX_RETRY {
             match self.inner.get_formats(formats) {
                 Ok(data) => {
@@ -383,13 +383,13 @@ impl ClipboardContext {
     }
 
     #[cfg(all(feature = "unix-file-copy-paste", target_os = "macos"))]
-    fn get_file_urls_set_by_rustdesk(
+    fn get_file_urls_set_by_scrdesk(
         data: Vec<ClipboardData>,
         _side: ClipboardSide,
     ) -> Vec<String> {
         for item in data.into_iter() {
             if let ClipboardData::FileUrl(urls) = item {
-                if is_file_url_set_by_rustdesk(&urls) {
+                if is_file_url_set_by_scrdesk(&urls) {
                     return urls;
                 }
             }
@@ -398,7 +398,7 @@ impl ClipboardContext {
     }
 
     #[cfg(all(feature = "unix-file-copy-paste", target_os = "linux"))]
-    fn get_file_urls_set_by_rustdesk(data: Vec<ClipboardData>, side: ClipboardSide) -> Vec<String> {
+    fn get_file_urls_set_by_scrdesk(data: Vec<ClipboardData>, side: ClipboardSide) -> Vec<String> {
         let exclude_path =
             clipboard::platform::unix::fuse::get_exclude_paths(side == ClipboardSide::Client);
         data.into_iter()
@@ -418,7 +418,7 @@ impl ClipboardContext {
     fn try_empty_clipboard_files(&mut self, side: ClipboardSide) {
         let _lock = ARBOARD_MTX.lock().unwrap();
         if let Ok(data) = self.get_formats(&[ClipboardFormat::FileUrl]) {
-            let urls = Self::get_file_urls_set_by_rustdesk(data, side);
+            let urls = Self::get_file_urls_set_by_scrdesk(data, side);
             if !urls.is_empty() {
                 // FIXME:
                 // The host-side clear file clipboard `let _ = self.inner.clear();`,
@@ -758,7 +758,7 @@ pub fn get_clipboards_msg(client: bool) -> Option<Message> {
 
 // We need this mod to notify multiple subscribers when the clipboard changes.
 // Because only one clipboard master(listener) can trigger the clipboard change event multiple listeners are created on Linux(x11).
-// https://github.com/rustdesk-org/clipboard-master/blob/4fb62e5b62fb6350d82b571ec7ba94b3cd466695/src/master/x11.rs#L226
+// https://github.com/scrdesk-org/clipboard-master/blob/4fb62e5b62fb6350d82b571ec7ba94b3cd466695/src/master/x11.rs#L226
 #[cfg(not(target_os = "android"))]
 pub mod clipboard_listener {
     use clipboard_master::{CallbackResult, ClipboardHandler, Master, Shutdown};

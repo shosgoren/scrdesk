@@ -1,0 +1,57 @@
+# VPS'ye bağlanın:
+ssh root@72.61.138.218
+# Şifre: johqid-4Cuhxi-nugvov
+
+# Sonra bu komutu kopyala-yapıştır:
+cat > /var/www/scrdesk/index.html << 'HTMLEOF'
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<title>SCRDESK</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,sans-serif;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
+.c{background:rgba(255,255,255,.95);border-radius:20px;padding:50px;max-width:800px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.3);text-align:center}
+h1{font-size:3em;color:#667eea;margin-bottom:15px}
+.s{font-size:1.2em;color:#555;margin-bottom:30px}
+.dt{font-size:1.8em;color:#333;margin:30px 0 20px}
+.p{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:25px}
+.b{padding:18px;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:#fff;text-decoration:none;border-radius:8px;font-weight:600;transition:all .3s;display:block}
+.b:hover{transform:scale(1.05)}
+.si{background:#f0f4ff;padding:25px;border-radius:12px;margin-top:30px;border:2px solid #667eea}
+.sd{background:#fff;padding:15px;border-radius:8px;font-family:monospace;font-size:.9em;text-align:left;line-height:1.6}
+.sd strong{color:#667eea}
+footer{margin-top:30px;color:#fff}
+footer a{color:#fff;text-decoration:none;font-weight:600}
+</style>
+</head>
+<body>
+<div class="c">
+<h1>🖥️ SCRDESK</h1>
+<p class="s">Güvenli, Hızlı ve Ücretsiz Uzaktan Masaüstü</p>
+<h2 class="dt">📥 İndir</h2>
+<div class="p">
+<a href="https://github.com/rustdesk/rustdesk/releases/download/1.4.4/rustdesk-1.4.4-x86_64.exe" class="b">🪟 Windows</a>
+<a href="https://github.com/rustdesk/rustdesk/releases/download/1.4.4/rustdesk-1.4.4-x86_64.dmg" class="b">🍎 macOS Intel</a>
+<a href="https://github.com/rustdesk/rustdesk/releases/download/1.4.4/rustdesk-1.4.4-aarch64.dmg" class="b">🍎 macOS ARM</a>
+<a href="https://github.com/rustdesk/rustdesk/releases/download/1.4.4/rustdesk-1.4.4-x86_64.deb" class="b">🐧 Linux DEB</a>
+<a href="https://github.com/rustdesk/rustdesk/releases/download/1.4.4/rustdesk-1.4.4-x86_64.AppImage" class="b">🐧 AppImage</a>
+<a href="https://github.com/rustdesk/rustdesk/releases/download/1.4.4/rustdesk-1.4.4-universal-signed.apk" class="b">🤖 Android</a>
+</div>
+<div class="si">
+<h3 style="color:#667eea;margin-bottom:15px">⚙️ Sunucu Ayarları</h3>
+<div class="sd">
+<strong>ID Server:</strong> server.scrdesk.com.tr:21116<br>
+<strong>Relay Server:</strong> server.scrdesk.com.tr:21117<br>
+<strong>Key:</strong> KddKT26upyAdq21LCAMlnQC1vLiXehLpQAgQI1prHYo=
+</div>
+<p style="margin-top:12px;color:#666;font-size:.85em">Client'ı indirip Settings → Network'ten bu ayarları girin.</p>
+</div>
+</div>
+<footer><p>SCRDESK | <a href="https://github.com/shosgoren/scrdesk">GitHub</a></p></footer>
+</body>
+</html>
+HTMLEOF
+
+echo "✅ Landing page güncellendi!"

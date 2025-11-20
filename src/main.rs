@@ -46,7 +46,7 @@ fn main() {
         -k, --key=[KEY] ''
        -s, --server=[] 'Start server'",
     );
-    let matches = App::new("rustdesk")
+    let matches = App::new("scrdesk")
         .version(crate::VERSION)
         .author("SCRDESK Team <info@scrdesk.com>")
         .about("SCRDESK command line tool")
