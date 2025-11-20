@@ -21,6 +21,10 @@ jobs:
           toolchain: stable
           profile: minimal
 
+      - name: Install dependencies
+        run: |
+          brew install opus yasm cmake nasm pkg-config
+
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
@@ -55,6 +59,10 @@ jobs:
         with:
           toolchain: stable
           profile: minimal
+
+      - name: Install dependencies
+        run: |
+          choco install llvm -y
 
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
@@ -101,6 +109,10 @@ jobs:
             libasound2-dev \
             libgstreamer1.0-dev \
             libgstreamer-plugins-base1.0-dev \
+            libopus-dev \
+            yasm \
+            cmake \
+            nasm \
             ninja-build \
             pkg-config
 
