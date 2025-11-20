@@ -9,7 +9,7 @@ default-run = "scrdesk"
 rust-version = "1.75"
 
 [lib]
-name = "libscrdesk"
+name = "scrdesk"
 crate-type = ["cdylib", "staticlib", "rlib"]
 
 [[bin]]

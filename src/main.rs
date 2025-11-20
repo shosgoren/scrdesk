@@ -3,7 +3,7 @@
     windows_subsystem = "windows"
 )]
 
-use libscrdesk::*;
+use scrdesk::*;
 
 #[cfg(any(target_os = "android", target_os = "ios", feature = "flutter"))]
 fn main() {

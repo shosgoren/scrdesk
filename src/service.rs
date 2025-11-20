@@ -1,4 +1,4 @@
-use libscrdesk::*;
+use scrdesk::*;
 
 #[cfg(not(target_os = "macos"))]
 fn main() {}
