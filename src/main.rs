@@ -3,7 +3,7 @@
     windows_subsystem = "windows"
 )]
 
-use librustdesk::*;
+use libscrdesk::*;
 
 #[cfg(any(target_os = "android", target_os = "ios", feature = "flutter"))]
 fn main() {
@@ -48,8 +48,8 @@ fn main() {
     );
     let matches = App::new("rustdesk")
         .version(crate::VERSION)
-        .author("Purslane Ltd<info@rustdesk.com>")
-        .about("RustDesk command line tool")
+        .author("SCRDESK Team <info@scrdesk.com>")
+        .about("SCRDESK command line tool")
         .args_from_usage(&args)
         .get_matches();
     use hbb_common::{config::LocalConfig, env_logger::*};

@@ -1,0 +1,11 @@
+[Desktop Entry]
+Name=SCRDESK
+NoDisplay=true
+MimeType=x-scheme-handler/scrdesk;
+TryExec=scrdesk
+Exec=scrdesk %u
+Icon=scrdesk
+Terminal=false
+Type=Application
+StartupNotify=false
+StartupWMClass=scrdesk

@@ -64,7 +64,7 @@ pub struct Remote<T: InvokeUiSession> {
     read_jobs: Vec<fs::TransferJob>,
     write_jobs: Vec<fs::TransferJob>,
     remove_jobs: HashMap<i32, RemoveJob>,
-    timer: crate::RustDeskInterval,
+    timer: crate::SCRDESKInterval,
     last_update_jobs_status: (Instant, HashMap<i32, u64>),
     is_connected: bool,
     first_frame: bool,
