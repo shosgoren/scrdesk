@@ -1,0 +1,48 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  backend-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions-rust-lang/setup-rust-toolchain@v1
+      - name: Build backend
+        run: cd backend && cargo build --release
+      - name: Run tests
+        run: cd backend && cargo test
+
+  admin-panel-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Build admin panel
+        run: |
+          cd admin-panel
+          npm install
+          npm run build
+
+  docker-build:
+    runs-on: ubuntu-latest
+    needs: [backend-build, admin-panel-build]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build Docker images
+        run: docker-compose build
+
+  release:
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    needs: [docker-build]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Create Release
+        run: echo "Release would be created here"
