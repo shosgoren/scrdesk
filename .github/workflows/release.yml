@@ -1,0 +1,102 @@
+name: Release Builds
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  build-desktop-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions-rust-lang/setup-rust-toolchain@v1
+      - name: Build Windows client
+        run: |
+          cd client/desktop
+          cargo build --release --target x86_64-pc-windows-msvc
+      - name: Create installer
+        run: |
+          mkdir dist
+          cp target/x86_64-pc-windows-msvc/release/scrdesk.exe dist/scrdesk-windows-x64.exe
+      - uses: actions/upload-artifact@v4
+        with:
+          name: scrdesk-windows
+          path: dist/scrdesk-windows-x64.exe
+
+  build-desktop-macos:
+    runs-on: macos-latest
+    strategy:
+      matrix:
+        target: [x86_64-apple-darwin, aarch64-apple-darwin]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions-rust-lang/setup-rust-toolchain@v1
+      - name: Build macOS client
+        run: |
+          cd client/desktop
+          rustup target add ${{ matrix.target }}
+          cargo build --release --target ${{ matrix.target }}
+      - name: Create DMG
+        run: |
+          mkdir -p dist
+          cp target/${{ matrix.target }}/release/scrdesk dist/scrdesk-macos-${{ matrix.target }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: scrdesk-macos-${{ matrix.target }}
+          path: dist/scrdesk-macos-${{ matrix.target }}
+
+  build-desktop-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions-rust-lang/setup-rust-toolchain@v1
+      - name: Install dependencies
+        run: sudo apt-get update && sudo apt-get install -y libgtk-3-dev
+      - name: Build Linux client
+        run: |
+          cd client/desktop
+          cargo build --release
+      - name: Create package
+        run: |
+          mkdir -p dist
+          cp client/desktop/target/release/scrdesk dist/scrdesk-linux-x64
+          chmod +x dist/scrdesk-linux-x64
+      - uses: actions/upload-artifact@v4
+        with:
+          name: scrdesk-linux
+          path: dist/scrdesk-linux-x64
+
+  create-release:
+    needs: [build-desktop-windows, build-desktop-macos, build-desktop-linux]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            artifacts/**/*
+          body: |
+            ## ScrDesk PRO Enterprise - Desktop Clients
+
+            ### Downloads
+            - **Windows**: scrdesk-windows-x64.exe
+            - **macOS (Intel)**: scrdesk-macos-x86_64-apple-darwin
+            - **macOS (Apple Silicon)**: scrdesk-macos-aarch64-apple-darwin
+            - **Linux**: scrdesk-linux-x64
+
+            ### Installation
+            1. Download the appropriate file for your platform
+            2. Run the installer/binary
+            3. Connect to your ScrDesk server
+
+            ### Server URL
+            Default: `http://72.61.138.218:8000`
+            Relay: `tcp://72.61.138.218:21117`
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
