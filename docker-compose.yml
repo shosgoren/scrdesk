@@ -1,0 +1,237 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:16-alpine
+    container_name: scrdesk-postgres
+    environment:
+      POSTGRES_DB: scrdesk
+      POSTGRES_USER: scrdesk
+      POSTGRES_PASSWORD: scrdesk_dev_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U scrdesk"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: scrdesk-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # MinIO (S3-compatible storage)
+  minio:
+    image: minio/minio:latest
+    container_name: scrdesk-minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+
+  # Auth Service
+  auth-service:
+    build:
+      context: ./backend
+      dockerfile: ./scrdesk-auth-service/Dockerfile
+    container_name: scrdesk-auth-service
+    environment:
+      DATABASE__URL: postgres://scrdesk:scrdesk_dev_password@postgres:5432/scrdesk
+      DATABASE__MAX_CONNECTIONS: 10
+      DATABASE__MIN_CONNECTIONS: 2
+      REDIS__URL: redis://redis:6379
+      SERVER__HOST: 0.0.0.0
+      SERVER__PORT: 8001
+      JWT__SECRET: your-super-secret-jwt-key-change-in-production
+      JWT__ACCESS_TOKEN_EXPIRY: 3600
+      JWT__REFRESH_TOKEN_EXPIRY: 604800
+    ports:
+      - "8001:8001"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # Core Server (API Gateway)
+  core-server:
+    build:
+      context: ./backend
+      dockerfile: ./scrdesk-core-server/Dockerfile
+    container_name: scrdesk-core-server
+    environment:
+      DATABASE__URL: postgres://scrdesk:scrdesk_dev_password@postgres:5432/scrdesk
+      DATABASE__MAX_CONNECTIONS: 20
+      DATABASE__MIN_CONNECTIONS: 5
+      REDIS__URL: redis://redis:6379
+      SERVER__HOST: 0.0.0.0
+      SERVER__PORT: 8000
+      JWT__SECRET: your-super-secret-jwt-key-change-in-production
+      AUTH_SERVICE_URL: http://auth-service:8001
+      DEVICE_SERVICE_URL: http://device-manager:8002
+      POLICY_SERVICE_URL: http://policy-engine:8003
+    ports:
+      - "8000:8000"
+    depends_on:
+      - postgres
+      - redis
+      - auth-service
+    restart: unless-stopped
+
+  # Device Manager
+  device-manager:
+    build:
+      context: ./backend
+      dockerfile: ./scrdesk-device-manager/Dockerfile
+    container_name: scrdesk-device-manager
+    environment:
+      DATABASE__URL: postgres://scrdesk:scrdesk_dev_password@postgres:5432/scrdesk
+      DATABASE__MAX_CONNECTIONS: 10
+      DATABASE__MIN_CONNECTIONS: 2
+      REDIS__URL: redis://redis:6379
+      SERVER__HOST: 0.0.0.0
+      SERVER__PORT: 8002
+      JWT__SECRET: your-super-secret-jwt-key-change-in-production
+    ports:
+      - "8002:8002"
+    depends_on:
+      - postgres
+      - redis
+    restart: unless-stopped
+
+  # Policy Engine
+  policy-engine:
+    build:
+      context: ./backend
+      dockerfile: ./scrdesk-policy-engine/Dockerfile
+    container_name: scrdesk-policy-engine
+    environment:
+      DATABASE__URL: postgres://scrdesk:scrdesk_dev_password@postgres:5432/scrdesk
+      DATABASE__MAX_CONNECTIONS: 10
+      DATABASE__MIN_CONNECTIONS: 2
+      REDIS__URL: redis://redis:6379
+      SERVER__HOST: 0.0.0.0
+      SERVER__PORT: 8003
+    ports:
+      - "8003:8003"
+    depends_on:
+      - postgres
+      - redis
+    restart: unless-stopped
+
+  # Relay Cluster
+  relay-cluster:
+    build:
+      context: ./backend
+      dockerfile: ./scrdesk-relay-cluster/Dockerfile
+    container_name: scrdesk-relay-cluster
+    environment:
+      DATABASE__URL: postgres://scrdesk:scrdesk_dev_password@postgres:5432/scrdesk
+      REDIS__URL: redis://redis:6379
+      SERVER__HOST: 0.0.0.0
+      SERVER__PORT: 21116
+      RELAY_PORT: 21117
+    ports:
+      - "21116:21116"  # Management API
+      - "21117:21117"  # Relay traffic
+    depends_on:
+      - postgres
+      - redis
+    restart: unless-stopped
+
+  # Audit Service
+  audit-service:
+    build:
+      context: ./backend
+      dockerfile: ./scrdesk-audit-service/Dockerfile
+    container_name: scrdesk-audit-service
+    environment:
+      DATABASE__URL: postgres://scrdesk:scrdesk_dev_password@postgres:5432/scrdesk
+      DATABASE__MAX_CONNECTIONS: 10
+      DATABASE__MIN_CONNECTIONS: 2
+      REDIS__URL: redis://redis:6379
+      SERVER__HOST: 0.0.0.0
+      SERVER__PORT: 8005
+    ports:
+      - "8005:8005"
+    depends_on:
+      - postgres
+      - redis
+    restart: unless-stopped
+
+  # Admin Backend
+  admin-backend:
+    build:
+      context: ./backend
+      dockerfile: ./scrdesk-admin-backend/Dockerfile
+    container_name: scrdesk-admin-backend
+    environment:
+      DATABASE__URL: postgres://scrdesk:scrdesk_dev_password@postgres:5432/scrdesk
+      DATABASE__MAX_CONNECTIONS: 10
+      DATABASE__MIN_CONNECTIONS: 2
+      REDIS__URL: redis://redis:6379
+      SERVER__HOST: 0.0.0.0
+      SERVER__PORT: 8006
+      JWT__SECRET: your-super-secret-jwt-key-change-in-production
+      S3__BUCKET: scrdesk-recordings
+      S3__REGION: us-east-1
+      S3__ACCESS_KEY: minioadmin
+      S3__SECRET_KEY: minioadmin
+      S3__ENDPOINT: http://minio:9000
+    ports:
+      - "8006:8006"
+    depends_on:
+      - postgres
+      - redis
+      - minio
+    restart: unless-stopped
+
+  # Admin Panel (Next.js)
+  admin-panel:
+    build:
+      context: ./admin-panel
+      dockerfile: Dockerfile
+    container_name: scrdesk-admin-panel
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:8000
+      NODE_ENV: development
+    ports:
+      - "3000:3000"
+    depends_on:
+      - core-server
+    restart: unless-stopped
+    stdin_open: true
+    tty: true
+
+volumes:
+  postgres_data:
+  redis_data:
+  minio_data:
+
+networks:
+  default:
+    name: scrdesk-network
