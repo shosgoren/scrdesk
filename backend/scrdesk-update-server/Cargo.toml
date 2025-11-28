@@ -4,6 +4,19 @@ version.workspace = true
 edition.workspace = true
 authors.workspace = true
 license.workspace = true
-repository.workspace = true
+
+[[bin]]
+name = "scrdesk-update-server"
+path = "src/main.rs"
 
 [dependencies]
+scrdesk-shared = { path = "../shared" }
+tokio.workspace = true
+axum.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
+anyhow.workspace = true
+config.workspace = true
+dotenv.workspace = true
