@@ -83,4 +83,6 @@ stripe-rust = "0.26"
 lettre = { version = "0.11", features = ["tokio1-rustls-tls"] }
 
 # Networking
-hbb_common = { git = "https://github.com/rustdesk/rustdesk-server", features = ["quic"] }
+# hbb_common = { git = "https://github.com/rustdesk/rustdesk-server", features = ["quic"] }
+# Note: hbb_common disabled for now - causes build issues with git dependencies in Docker
+# Will be re-enabled when implementing full RustDesk protocol
