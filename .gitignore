@@ -74,3 +74,4 @@ docker-compose.override.yml
 
 # Session recordings
 recordings/
+scrdesk-deploy.tar.gz

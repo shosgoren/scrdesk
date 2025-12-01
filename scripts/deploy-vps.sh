@@ -8,20 +8,9 @@ VPS_HOST="72.61.138.218"
 VPS_USER="root"
 VPS_PASSWORD="&2BzMs7Zd.JEABbjP)rr"
 DEPLOY_DIR="/opt/scrdesk"
+REPO_URL="https://github.com/shosgoren/scrdesk.git"
 
-echo "📦 Preparing deployment package..."
-tar czf scrdesk-deploy.tar.gz \
-    backend/ \
-    admin-panel/ \
-    docker-compose.yml \
-    .env.example \
-    README.md
-
-echo "📤 Uploading to VPS..."
-sshpass -p "$VPS_PASSWORD" scp -o StrictHostKeyChecking=no \
-    scrdesk-deploy.tar.gz $VPS_USER@$VPS_HOST:/tmp/
-
-echo "🔧 Installing on VPS..."
+echo "🔧 Deploying to VPS..."
 sshpass -p "$VPS_PASSWORD" ssh -o StrictHostKeyChecking=no $VPS_USER@$VPS_HOST << 'ENDSSH'
 set -e
 
@@ -29,12 +18,18 @@ set -e
 apt-get update
 apt-get install -y docker.io docker-compose git curl
 
-# Create deployment directory
-mkdir -p /opt/scrdesk
-cd /opt/scrdesk
-
-# Extract deployment package
-tar xzf /tmp/scrdesk-deploy.tar.gz
+# Clone or update repository
+if [ -d "/opt/scrdesk" ]; then
+    echo "📥 Updating existing repository..."
+    cd /opt/scrdesk
+    git fetch origin
+    git reset --hard origin/main
+    git pull origin main
+else
+    echo "📥 Cloning repository..."
+    git clone https://github.com/shosgoren/scrdesk.git /opt/scrdesk
+    cd /opt/scrdesk
+fi
 
 # Create .env file
 cp .env.example .env
