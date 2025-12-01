@@ -81,7 +81,7 @@ aws-config = "1.1"
 # async-stripe = { version = "0.36", features = ["runtime-tokio-hyper"] }  # Disabled for now, will enable when needed
 
 # Email
-lettre = { version = "0.11", features = ["tokio1-rustls-tls"] }
+lettre = { version = "0.11", default-features = false, features = ["tokio1-rustls-tls", "smtp-transport", "builder"] }
 
 # Networking
 # hbb_common = { git = "https://github.com/rustdesk/rustdesk-server", features = ["quic"] }
