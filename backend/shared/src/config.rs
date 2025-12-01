@@ -1,4 +1,5 @@
 use serde::Deserialize;
+use config::{Config as ConfigBuilder, ConfigError, Environment};
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct DatabaseConfig {
@@ -51,9 +52,9 @@ pub struct Config {
 }
 
 impl Config {
-    pub fn from_env() -> Result<Self, config::ConfigError> {
-        config::Config::builder()
-            .add_source(config::Environment::default().separator("__"))
+    pub fn from_env() -> Result<Self, ConfigError> {
+        ConfigBuilder::builder()
+            .add_source(Environment::default().separator("__"))
             .build()?
             .try_deserialize()
     }

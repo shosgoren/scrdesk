@@ -21,3 +21,5 @@ jsonwebtoken.workspace = true
 # Additional
 strum = { version = "0.26", features = ["derive"] }
 strum_macros = "0.26"
+config = "0.14"
+dotenv = "0.15"
