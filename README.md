@@ -1,127 +1,254 @@
 # ScrDesk PRO Enterprise
 
-Profesyonel, yüksek güvenlikli, enterprise-grade uzak masaüstü çözümü. RustDesk'ten ilham alınarak sıfırdan geliştirilmiştir.
+[![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](https://github.com/shosgoren/scrdesk/releases)
+[![License](https://img.shields.io/badge/license-Proprietary-red.svg)](LICENSE)
+[![Rust](https://img.shields.io/badge/rust-1.91%2B-orange.svg)](https://www.rust-lang.org/)
+[![Docker](https://img.shields.io/badge/docker-ready-brightgreen.svg)](https://www.docker.com/)
 
-## 🎯 Özellikler
+Professional, high-security, enterprise-grade remote desktop solution. Inspired by RustDesk, built from scratch with modern technologies.
 
-### Enterprise Seviye
-- **Multi-Tenant Mimari**: Tam izolasyonlu organizasyon yönetimi
-- **Mikroservis Yapısı**: Ölçeklenebilir, esnek backend
-- **Yüksek Güvenlik**: AES-256, RSA-4096, TLS 1.3, mTLS
-- **2FA Desteği**: TOTP ile iki faktörlü kimlik doğrulama
-- **RBAC**: Rol tabanlı erişim kontrolü
-- **Policy Engine**: Granüler erişim politikaları
-- **Audit Logging**: SOC2 uyumlu tam denetim kaydı
+## 🎯 Features
 
-### Platform Desteği
-- Windows, macOS, Linux (Desktop)
-- Android, iOS (Mobile) - Yapım aşamasında
+### Enterprise Level
+- **Multi-Tenant Architecture**: Full tenant isolation
+- **Microservices**: Scalable, flexible backend (11 services)
+- **High Security**: JWT + 2FA, Argon2 password hashing, TLS 1.3 ready
+- **2FA Support**: TOTP-based two-factor authentication
+- **RBAC**: Role-based access control (Admin, User, Viewer)
+- **Policy Engine**: Granular access policies (time restrictions, IP whitelist)
+- **Audit Logging**: SOC2-compliant comprehensive audit trails
 
-## 🏗️ Mimari
+### Platform Support
+- **Desktop**: macOS (ARM64 & Intel), Windows, Linux (x86_64)
+- **Mobile**: Android, iOS (Planned for v2.0.0)
+- **Web**: Admin panel (Next.js + React)
 
-### Backend Mikroservisler (Rust)
-- `scrdesk-auth-service` - Kimlik doğrulama (login, 2FA, JWT)
-- `scrdesk-device-manager` - Cihaz yönetimi ve onay
-- `scrdesk-policy-engine` - Erişim politikaları
-- `scrdesk-audit-service` - Denetim günlükleri
-- `scrdesk-admin-backend` - Admin API
-- `scrdesk-relay-cluster` - Bağlantı relay'i
-- `scrdesk-notification-service` - Bildirimler
-- `scrdesk-billing-service` - Faturalama (Stripe)
-- `scrdesk-update-server` - Otomatik güncellemeler
-- `scrdesk-core-server` - API Gateway
+## 🏗️ Architecture
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                     Desktop Clients                         │
+│          (Windows, macOS, Linux)                           │
+└────────────────────┬────────────────────────────────────────┘
+                     │
+                     ▼
+┌─────────────────────────────────────────────────────────────┐
+│                    Nginx (Reverse Proxy)                    │
+│                    SSL/TLS Termination                      │
+└────────────────────┬────────────────────────────────────────┘
+                     │
+        ┌────────────┼────────────┐
+        ▼            ▼            ▼
+┌──────────────┬──────────────┬──────────────┐
+│   Auth       │   Device     │   Policy     │
+│   Service    │   Manager    │   Engine     │
+│   :8081      │   :8082      │   :8083      │
+└──────┬───────┴──────┬───────┴──────┬───────┘
+       │              │              │
+       └──────────────┼──────────────┘
+                      │
+        ┌─────────────┼─────────────┐
+        ▼             ▼             ▼
+┌──────────────┬──────────────┬──────────────┐
+│  PostgreSQL  │    Redis     │    Relay     │
+│     :5432    │    :6379     │   Cluster    │
+│              │              │    :21116    │
+└──────────────┴──────────────┴──────────────┘
+```
+
+### Backend Microservices (Rust + Axum)
+- **scrdesk-auth-service** (:8081) - Authentication (login, 2FA, JWT)
+- **scrdesk-device-manager** (:8082) - Device management and approval
+- **scrdesk-policy-engine** (:8083) - Access policies
+- **scrdesk-core-server** (:8084) - Core orchestration
+- **scrdesk-relay-cluster** (:8085) - Connection relay (RustDesk protocol)
+- **scrdesk-audit-service** (:8086) - Audit logs
+- **scrdesk-notification-service** (:8087) - Notifications
+- **scrdesk-billing-service** (:8088) - Billing and usage tracking
+- **scrdesk-admin-backend** (:8089) - Admin API
+- **scrdesk-update-server** (:8090) - Automatic updates
+- **scrdesk-analytics** (:8091) - Analytics and reporting
+- **scrdesk-logging** (Internal) - Centralized logging
 
 ### Frontend
-- **Admin Panel**: Next.js 15 + React 19 + TypeScript
+- **Admin Panel**: Next.js 15 + React 19 + TypeScript (Coming soon)
+- **Desktop Client**: Rust + egui/eframe (v1.0.0 released)
 
-### Altyapı
-- PostgreSQL 16+ (Ana veritabanı)
-- Redis 7+ (Cache & Sessions)
-- MinIO / S3 (Session recordings)
-- Docker & Docker Compose
+### Infrastructure
+- **PostgreSQL 16**: Primary database
+- **Redis 7**: Caching and session management
+- **Docker & Docker Compose**: Container orchestration
+- **Nginx**: Reverse proxy and SSL termination
 
-## 🚀 Hızlı Başlangıç
+## 🚀 Quick Start
 
-### Gereksinimler
-- Docker & Docker Compose
-- (Opsiyonel) Rust 1.75+, Node.js 20+
+### Prerequisites
+- **Docker** (20.10+) & **Docker Compose** (2.0+)
+- **Git**
+- **4GB RAM minimum** (8GB recommended)
+- **Linux server** (Ubuntu 20.04+, Debian 11+, or CentOS 8+)
 
-### Kurulum
+### Installation
 
-1. **Repository'yi klonla**
+#### 1. Clone Repository
 ```bash
 git clone https://github.com/shosgoren/scrdesk.git
-cd scrdesk
+cd scrdesk/backend
 ```
 
-2. **Environment variables**
+#### 2. Configure Environment
 ```bash
 cp .env.example .env
-# .env dosyasını düzenleyin
+nano .env  # Update passwords, JWT secret, and other configurations
 ```
 
-3. **Docker ile başlat**
+**Important:** Change these variables:
+- `DATABASE_URL` - PostgreSQL connection string
+- `POSTGRES_PASSWORD` - Database password
+- `JWT_SECRET` - Random string (32+ characters)
+- `SMTP_*` - Email configuration for password reset
+
+#### 3. Start Services
 ```bash
-docker-compose up -d
+# Build and start all services
+docker compose up -d
+
+# Wait for services to be healthy (2-5 minutes)
+sleep 120
+
+# Check status
+docker compose ps
+
+# View logs
+docker compose logs -f
 ```
 
-4. **Servislere erişim**
-- Admin Panel: http://localhost:3000
-- Core API: http://localhost:8000
-- Auth Service: http://localhost:8001
-- Device Manager: http://localhost:8002
-- Policy Engine: http://localhost:8003
-- Audit Service: http://localhost:8005
-- Admin Backend: http://localhost:8006
-- Relay Server: tcp://localhost:21117
+#### 4. Verify Deployment
+```bash
+# Check health endpoints
+curl http://localhost:8081/health  # Auth service
+curl http://localhost:8082/health  # Device manager
+curl http://localhost:8083/health  # Policy engine
 
-## 📝 API Dokümantasyonu
+# Or use the health check script
+./scripts/health-check.sh --verbose
+```
 
-### Auth Service (Port 8001)
-- `POST /api/v1/auth/register` - Kullanıcı kaydı
-- `POST /api/v1/auth/login` - Giriş
-- `POST /api/v1/auth/2fa/enable` - 2FA aktifleştir
-- `POST /api/v1/auth/refresh` - Token yenile
-- `POST /api/v1/auth/logout` - Çıkış
+#### 5. Access Services
+- **Auth Service**: http://localhost:8081
+- **Device Manager**: http://localhost:8082
+- **Policy Engine**: http://localhost:8083
+- **Core Server**: http://localhost:8084
+- **Relay Cluster**: tcp://localhost:21116
+- **Admin Backend**: http://localhost:8089
 
-### Device Manager (Port 8002)
-- `POST /api/v1/devices` - Cihaz kaydet
-- `GET /api/v1/devices` - Cihazları listele
-- `POST /api/v1/devices/:id/approve` - Cihaz onayla
-- `POST /api/v1/devices/:id/heartbeat` - Heartbeat
+For production deployment with SSL/TLS, see [Deployment Guide](docs/DEPLOYMENT.md).
 
-### Policy Engine (Port 8003)
-- `POST /api/v1/policies` - Policy oluştur
-- `GET /api/v1/policies` - Policy'leri listele
-- `POST /api/v1/policies/check` - Policy kontrol et
+## 📝 Documentation
 
-### Audit Service (Port 8005)
-- `GET /api/v1/audit-logs` - Audit logları listele
-- `GET /api/v1/audit-logs/export` - Logları dışa aktar
+- **[API Documentation](docs/API.md)** - Complete API reference with examples
+- **[Deployment Guide](docs/DEPLOYMENT.md)** - Production deployment instructions
+- **[Release Notes](RELEASE_NOTES_v1.0.0.md)** - v1.0.0 release details
 
-## 🔐 Güvenlik
+### Quick API Example
 
-- **Şifreleme**: AES-256, RSA-4096
-- **Transport**: TLS 1.3, mTLS desteği
-- **Authentication**: JWT (access + refresh tokens)
-- **2FA**: TOTP (Google Authenticator uyumlu)
-- **Password**: BCrypt hashing
-- **SQL Injection**: Parameterized queries
-- **Tenant Isolation**: Her tenant tamamen izole
+```bash
+# Register user
+curl -X POST http://localhost:8081/api/v1/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "user@example.com",
+    "password": "SecurePassword123!",
+    "name": "John Doe"
+  }'
 
-## 📊 Veritabanı
+# Login
+curl -X POST http://localhost:8081/api/v1/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "user@example.com",
+    "password": "SecurePassword123!"
+  }'
 
-PostgreSQL şeması:
-- `tenants` - Organizasyonlar
-- `users` - Kullanıcılar (2FA desteği)
-- `devices` - Kayıtlı cihazlar
-- `sessions` - Bağlantı oturumları
-- `policies` - Erişim politikaları
-- `groups` - Kullanıcı/Cihaz grupları
-- `audit_logs` - Denetim kayıtları
+# Response
+{
+  "access_token": "eyJhbGci...",
+  "refresh_token": "eyJhbGci...",
+  "user": {
+    "id": "uuid",
+    "email": "user@example.com",
+    "name": "John Doe"
+  }
+}
+
+# List devices
+curl -X GET http://localhost:8082/api/v1/devices \
+  -H "Authorization: Bearer <access_token>"
+```
+
+For complete API documentation, see [docs/API.md](docs/API.md).
+
+## 🖥️ Desktop Client
+
+Download the latest desktop client from [Releases](https://github.com/shosgoren/scrdesk/releases).
+
+### Installation
+
+**macOS (Apple Silicon):**
+```bash
+curl -LO https://github.com/shosgoren/scrdesk/releases/download/v1.0.0/scrdesk-macos-arm64
+chmod +x scrdesk-macos-arm64
+./scrdesk-macos-arm64
+```
+
+**macOS (Intel):**
+```bash
+curl -LO https://github.com/shosgoren/scrdesk/releases/download/v1.0.0/scrdesk-macos-intel
+chmod +x scrdesk-macos-intel
+./scrdesk-macos-intel
+```
+
+**Windows:**
+- Download `scrdesk-windows-x86_64.exe` from releases
+- Run the installer
+
+**Linux:**
+```bash
+curl -LO https://github.com/shosgoren/scrdesk/releases/download/v1.0.0/scrdesk-linux-x86_64
+chmod +x scrdesk-linux-x86_64
+./scrdesk-linux-x86_64
+```
+
+### Features
+- Modern GUI with egui/eframe
+- Full API integration (login, 2FA, device management)
+- Connection state management
+- Cross-platform support
+
+## 🔐 Security
+
+- **Encryption**: Argon2 password hashing
+- **Transport**: TLS 1.3 ready, rustls
+- **Authentication**: JWT (access + refresh tokens, RS256)
+- **2FA**: TOTP (Google Authenticator compatible)
+- **SQL Injection Protection**: SQLx compile-time verified queries
+- **Rate Limiting**: Built-in on all endpoints
+- **CORS**: Configurable cross-origin policies
+- **Tenant Isolation**: Full tenant data isolation
+
+## 📊 Database
+
+PostgreSQL schema:
+- `organizations` - Multi-tenant organizations
+- `users` - Users with 2FA support
+- `devices` - Registered devices
+- `sessions` - Connection sessions
+- `policies` - Access policies
+- `groups` - User/Device groups
+- `audit_logs` - Audit trail
 - `refresh_tokens` - JWT refresh tokens
 
-## 🧪 Geliştirme
+## 🧪 Development
 
 ### Backend
 ```bash
@@ -131,56 +258,114 @@ cargo test
 cargo run --bin scrdesk-auth-service
 ```
 
-### Admin Panel
+### Desktop Client
 ```bash
-cd admin-panel
-npm install
-npm run dev
+cd client/desktop
+cargo build --release
+
+# Cross-platform builds
+./build-release.sh
 ```
 
 ## 📦 Deployment
 
-### Docker
+### Docker Compose (Recommended)
 ```bash
-docker-compose up -d
+cd backend
+docker compose up -d
 ```
+
+See [Deployment Guide](docs/DEPLOYMENT.md) for production setup.
 
 ### Kubernetes
 ```bash
-# Coming soon
+# Coming in v1.2.0
 kubectl apply -f kubernetes/
 ```
 
-## 🤝 Katkıda Bulunma
+## 🛠️ Monitoring & Health Checks
 
-Bu proje AGPL-3.0 lisansı altındadır. Katkılarınızı bekliyoruz!
+### Health Check Script
 
-## 📄 Lisans
+```bash
+# Run health check
+./backend/scripts/health-check.sh
 
-AGPL-3.0 - Detaylar için LICENSE dosyasına bakın.
+# Verbose output
+./backend/scripts/health-check.sh --verbose
+
+# JSON output (for monitoring tools)
+./backend/scripts/health-check.sh --json
+
+# Send alerts on failures
+./backend/scripts/health-check.sh --alert
+```
+
+### Real-time Dashboard
+
+```bash
+# Launch monitoring dashboard
+./backend/scripts/monitor-dashboard.sh
+```
+
+Displays:
+- Service status and health
+- CPU and memory usage per container
+- Container uptime
+- System resources (disk, memory)
+- Real-time updates every 2 seconds
 
 ## 🎯 Roadmap
 
-- [x] Mikroservis mimarisi
-- [x] Auth & 2FA
-- [x] Device management
-- [x] Policy engine
-- [x] Audit logging
-- [x] Admin panel temel
-- [ ] Desktop clients (Windows, macOS, Linux)
-- [ ] Mobile clients (Android, iOS)
-- [ ] Session recording
-- [ ] Real-time monitoring
-- [ ] Stripe billing integration
+### v1.0.0 (Released - December 2024) ✅
+- [x] Microservices architecture (11 services)
+- [x] Authentication & 2FA (JWT + TOTP)
+- [x] Device management with approval workflow
+- [x] Policy engine (time restrictions, IP whitelist)
+- [x] Audit logging system
+- [x] Desktop client (macOS ARM64 & Intel)
+- [x] Complete REST API
+- [x] Docker Compose deployment
+- [x] Health check and monitoring tools
+- [x] Comprehensive documentation
+
+### v1.1.0 (Q1 2025)
+- [ ] Screen recording and playback
+- [ ] File transfer between devices
+- [ ] Session history and analytics
+- [ ] Desktop clients for Windows and Linux
+- [ ] Advanced policy templates
+- [ ] Multi-language support
+
+### v1.2.0 (Q2 2025)
+- [ ] Mobile clients (iOS, Android)
+- [ ] WebRTC support
+- [ ] Clipboard synchronization
+- [ ] Advanced monitoring dashboard
 - [ ] Kubernetes deployment
 
-## 📞 İletişim
+### v2.0.0 (Q3 2025)
+- [ ] Multi-tenancy enhancements
+- [ ] LDAP/Active Directory integration
+- [ ] SAML SSO
+- [ ] Advanced analytics and reporting
+- [ ] Auto-scaling support
 
-- GitHub: https://github.com/shosgoren/scrdesk
-- Issues: https://github.com/shosgoren/scrdesk/issues
+## 📞 Support
+
+- **GitHub Issues**: https://github.com/shosgoren/scrdesk/issues
+- **Discussions**: https://github.com/shosgoren/scrdesk/discussions
+- **Documentation**: https://github.com/shosgoren/scrdesk/tree/main/docs
+- **Email**: support@scrdesk.com
+
+## 📄 License
+
+Copyright (c) 2024 ScrDesk PRO Enterprise. All rights reserved.
+
+This software is proprietary and confidential.
 
 ---
 
-⭐ **Star** vererek projeyi destekleyebilirsiniz!
+⭐ **Star this repository** to support the project!
 
-🤖 Built with [Claude Code](https://claude.ai/claude-code)
+🤖 Built with [Claude Code](https://claude.com/claude-code)
