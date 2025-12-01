@@ -77,7 +77,8 @@ aws-sdk-s3 = "1.13"
 aws-config = "1.1"
 
 # Stripe
-stripe-rust = "0.26"
+# stripe-rust = "0.26"  # Version doesn't exist
+# async-stripe = { version = "0.36", features = ["runtime-tokio-hyper"] }  # Disabled for now, will enable when needed
 
 # Email
 lettre = { version = "0.11", features = ["tokio1-rustls-tls"] }

@@ -20,4 +20,5 @@ tracing-subscriber.workspace = true
 anyhow.workspace = true
 config.workspace = true
 dotenv.workspace = true
-stripe-rust.workspace = true
+# stripe-rust.workspace = true  # Disabled - dependency version doesn't exist
+# async-stripe.workspace = true  # Will be enabled when Stripe integration is needed
