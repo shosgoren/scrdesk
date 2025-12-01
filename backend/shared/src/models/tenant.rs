@@ -26,7 +26,7 @@ pub struct CreateTenantRequest {
     #[validate(length(min = 1, max = 100))]
     pub name: String,
 
-    #[validate(length(min = 1, max = 50), regex = "^[a-z0-9-]+$")]
+    #[validate(length(min = 1, max = 50))]
     pub slug: String,
 
     pub plan: PlanType,

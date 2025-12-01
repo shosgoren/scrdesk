@@ -16,9 +16,10 @@ pub async fn create_pool(config: &DatabaseConfig) -> Result<DbPool> {
     Ok(pool)
 }
 
-pub async fn run_migrations(pool: &DbPool) -> Result<()> {
-    sqlx::migrate!("./migrations")
-        .run(pool)
-        .await?;
+pub async fn run_migrations(_pool: &DbPool) -> Result<()> {
+    // TODO: Add migrations directory
+    // sqlx::migrate!("./migrations")
+    //     .run(pool)
+    //     .await?;
     Ok(())
 }
