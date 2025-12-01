@@ -25,6 +25,7 @@ egui = "0.25"
 # RustDesk protocol
 hbb_common = { git = "https://github.com/rustdesk/rustdesk-server" }
 bytes = "1.11"
+hostname = "0.4"
 
 # Platform-specific
 [target.'cfg(windows)'.dependencies]
