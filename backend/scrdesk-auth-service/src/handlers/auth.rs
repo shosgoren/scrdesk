@@ -302,12 +302,9 @@ pub async fn get_current_user(
     Ok((StatusCode::OK, Json(user.into())))
 }
 
-#[derive(Debug, Deserialize, Validate)]
+#[derive(Debug, Deserialize)]
 pub struct ChangePasswordRequest {
-    #[validate(length(min = 8))]
     pub old_password: String,
-
-    #[validate(length(min = 8))]
     pub new_password: String,
 }
 
@@ -316,7 +313,13 @@ pub async fn change_password(
     headers: HeaderMap,
     Json(payload): Json<ChangePasswordRequest>,
 ) -> Result<(StatusCode, Json<Value>)> {
-    payload.validate().map_err(|e| Error::Validation(e.to_string()))?;
+    // Manual validation
+    if payload.old_password.len() < 8 {
+        return Err(Error::Validation("Old password must be at least 8 characters".to_string()));
+    }
+    if payload.new_password.len() < 8 {
+        return Err(Error::Validation("New password must be at least 8 characters".to_string()));
+    }
 
     // Get current user
     let auth_header = headers
@@ -366,9 +369,8 @@ pub async fn change_password(
     ))
 }
 
-#[derive(Debug, Deserialize, Validate)]
+#[derive(Debug, Deserialize)]
 pub struct RequestPasswordResetRequest {
-    #[validate(email)]
     pub email: String,
 }
 
@@ -376,7 +378,10 @@ pub async fn request_password_reset(
     State(state): State<Arc<AppState>>,
     Json(payload): Json<RequestPasswordResetRequest>,
 ) -> Result<(StatusCode, Json<Value>)> {
-    payload.validate().map_err(|e| Error::Validation(e.to_string()))?;
+    // Basic email validation
+    if !payload.email.contains('@') {
+        return Err(Error::Validation("Invalid email address".to_string()));
+    }
 
     // Check if user exists
     let user = sqlx::query_as::<_, scrdesk_shared::models::user::User>(
@@ -417,11 +422,9 @@ pub async fn request_password_reset(
     ))
 }
 
-#[derive(Debug, Deserialize, Validate)]
+#[derive(Debug, Deserialize)]
 pub struct ConfirmPasswordResetRequest {
     pub token: String,
-
-    #[validate(length(min = 8))]
     pub new_password: String,
 }
 
@@ -429,7 +432,10 @@ pub async fn confirm_password_reset(
     State(state): State<Arc<AppState>>,
     Json(payload): Json<ConfirmPasswordResetRequest>,
 ) -> Result<(StatusCode, Json<Value>)> {
-    payload.validate().map_err(|e| Error::Validation(e.to_string()))?;
+    // Manual validation
+    if payload.new_password.len() < 8 {
+        return Err(Error::Validation("New password must be at least 8 characters".to_string()));
+    }
 
     // TODO: Verify token from database/redis and update password
     // This is a simplified implementation

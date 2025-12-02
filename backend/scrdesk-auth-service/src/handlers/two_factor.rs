@@ -57,9 +57,8 @@ pub async fn enable_2fa(
     )
     .map_err(|e| Error::Internal(e.to_string()))?;
 
-    // Generate QR code
-    let qr_code_url = totp.get_qr_base64()
-        .map_err(|e| Error::Internal(e.to_string()))?;
+    // Generate QR code URL
+    let qr_code_url = totp.get_url();
 
     // Generate backup codes
     let backup_codes: Vec<String> = (0..10)
