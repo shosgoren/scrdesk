@@ -1,4 +1,10 @@
 use thiserror::Error;
+use axum::{
+    http::StatusCode,
+    response::{IntoResponse, Response},
+    Json,
+};
+use serde_json::json;
 
 pub type Result<T> = std::result::Result<T, Error>;
 
@@ -89,5 +95,18 @@ impl Error {
             Error::Internal(_) => "INTERNAL_ERROR",
             Error::ExternalService(_) => "EXTERNAL_SERVICE_ERROR",
         }
+    }
+}
+
+impl IntoResponse for Error {
+    fn into_response(self) -> Response {
+        let status_code = StatusCode::from_u16(self.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR);
+
+        let body = Json(json!({
+            "error": self.error_code(),
+            "message": self.to_string(),
+        }));
+
+        (status_code, body).into_response()
     }
 }
