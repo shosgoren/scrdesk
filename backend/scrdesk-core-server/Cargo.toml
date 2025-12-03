@@ -32,3 +32,4 @@ thiserror.workspace = true
 config.workspace = true
 dotenv.workspace = true
 reqwest.workspace = true
+validator.workspace = true
