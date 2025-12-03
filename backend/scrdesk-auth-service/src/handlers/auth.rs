@@ -149,7 +149,8 @@ pub async fn login(
     if user.two_factor_enabled {
         if let Some(code) = payload.two_factor_code {
             // Verify 2FA code
-            if !verify_totp(&user.two_factor_secret.unwrap_or_default(), &code) {
+            let secret = user.two_factor_secret.as_ref().map(|s| s.as_str()).unwrap_or("");
+            if !verify_totp(secret, &code) {
                 return Err(Error::Authentication("Invalid 2FA code".to_string()));
             }
         } else {
