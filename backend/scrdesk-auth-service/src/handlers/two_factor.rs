@@ -42,23 +42,25 @@ pub async fn enable_2fa(
         return Err(Error::Validation("2FA is already enabled".to_string()));
     }
 
-    // Generate TOTP secret
-    let secret = Secret::generate_secret();
-    let secret_str = secret.to_encoded().to_string();
+    // Generate TOTP secret (32 random bytes, base32 encoded)
+    let secret_bytes: Vec<u8> = (0..32).map(|_| rand::random::<u8>()).collect();
+    let secret_str = base32::encode(base32::Alphabet::Rfc4648 { padding: false }, &secret_bytes);
 
     let totp = TOTP::new(
         Algorithm::SHA1,
         6,
         1,
         30,
-        secret.to_bytes().unwrap(),
-        Some("ScrDesk".to_string()),
-        user.email.clone(),
+        secret_bytes,
     )
     .map_err(|e| Error::Internal(e.to_string()))?;
 
-    // Generate QR code URL
-    let qr_code_url = totp.get_url();
+    // Generate QR code URL (otpauth:// URL)
+    let qr_code_url = format!(
+        "otpauth://totp/ScrDesk:{}?secret={}&issuer=ScrDesk",
+        user.email,
+        secret_str
+    );
 
     // Generate backup codes
     let backup_codes: Vec<String> = (0..10)
@@ -118,12 +120,15 @@ pub async fn verify_2fa(
         .ok_or_else(|| Error::Validation("2FA not set up".to_string()))?;
 
     // Verify TOTP code
+    let secret_bytes = base32::decode(base32::Alphabet::Rfc4648 { padding: false }, &secret)
+        .ok_or_else(|| Error::Internal("Invalid TOTP secret".to_string()))?;
+
     let totp = TOTP::new(
         Algorithm::SHA1,
         6,
         1,
         30,
-        secret.as_bytes().to_vec(),
+        secret_bytes,
     )
     .map_err(|e| Error::Internal(e.to_string()))?;
 
@@ -177,12 +182,15 @@ pub async fn disable_2fa(
     let secret = user.two_factor_secret.unwrap_or_default();
 
     // Verify TOTP code
+    let secret_bytes = base32::decode(base32::Alphabet::Rfc4648 { padding: false }, &secret)
+        .ok_or_else(|| Error::Internal("Invalid TOTP secret".to_string()))?;
+
     let totp = TOTP::new(
         Algorithm::SHA1,
         6,
         1,
         30,
-        secret.as_bytes().to_vec(),
+        secret_bytes,
     )
     .map_err(|e| Error::Internal(e.to_string()))?;
 

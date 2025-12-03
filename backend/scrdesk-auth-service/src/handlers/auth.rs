@@ -455,13 +455,22 @@ fn verify_totp(secret: &str, code: &str) -> bool {
         return false;
     }
 
-    let totp = TOTP::new(
+    // Decode base32 secret
+    let secret_bytes = match base32::decode(base32::Alphabet::Rfc4648 { padding: false }, secret) {
+        Some(bytes) => bytes,
+        None => return false,
+    };
+
+    let totp = match TOTP::new(
         Algorithm::SHA1,
         6,
         1,
         30,
-        secret.as_bytes().to_vec(),
-    ).unwrap();
+        secret_bytes,
+    ) {
+        Ok(t) => t,
+        Err(_) => return false,
+    };
 
     totp.check_current(code).unwrap_or(false)
 }
