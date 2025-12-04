@@ -1,4 +1,6 @@
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+// Use empty string to make API calls relative to the current domain
+// Nginx will proxy /api/ requests to the backend services
+const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
 
 export interface LoginCredentials {
   email: string;
