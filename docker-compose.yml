@@ -219,8 +219,8 @@ services:
       dockerfile: Dockerfile
     container_name: scrdesk-admin-panel
     environment:
-      NEXT_PUBLIC_API_URL: http://localhost:8000
-      NODE_ENV: development
+      NEXT_PUBLIC_API_URL: ""
+      NODE_ENV: production
     ports:
       - "3000:3000"
     depends_on:
