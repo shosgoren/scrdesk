@@ -40,7 +40,7 @@ pub async fn register(
         // Create default tenant for first user
         let slug = scrdesk_shared::utils::slugify(&payload.email);
         let tenant_id = sqlx::query(
-            "INSERT INTO tenants (name, slug, plan) VALUES ($1, $2, $3) RETURNING id"
+            "INSERT INTO tenants (name, slug, plan) VALUES ($1, $2, $3::plan_type) RETURNING id"
         )
         .bind(&payload.email)
         .bind(&slug)
