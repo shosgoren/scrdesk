@@ -28,7 +28,7 @@ function AuthForm() {
       if (mode === 'signin') {
         await login(email, password);
       } else {
-        // Register endpoint - will be implemented
+        // Register new user
         const response = await fetch('/api/v1/auth/register', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -36,14 +36,13 @@ function AuthForm() {
             email,
             password,
             full_name: fullName,
-            tenant_name: `${fullName}'s Organization`,
             role: 'admin'
           })
         });
 
         if (!response.ok) {
           const data = await response.json();
-          throw new Error(data.message || 'Registration failed');
+          throw new Error(data.error || data.message || 'Registration failed');
         }
 
         // Auto login after signup
