@@ -91,6 +91,8 @@ services:
       SERVER__HOST: 0.0.0.0
       SERVER__PORT: 8000
       JWT__SECRET: your-super-secret-jwt-key-change-in-production
+      JWT__ACCESS_TOKEN_EXPIRY: 3600
+      JWT__REFRESH_TOKEN_EXPIRY: 604800
       AUTH_SERVICE_URL: http://auth-service:8001
       DEVICE_SERVICE_URL: http://device-manager:8002
       POLICY_SERVICE_URL: http://policy-engine:8003
