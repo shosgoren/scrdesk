@@ -60,10 +60,10 @@ export default function HomePage() {
                 Start for free
               </Link>
               <Link
-                href="/demo"
+                href="/auth"
                 className="px-8 py-4 bg-white text-indigo-600 rounded-full hover:bg-gray-50 font-semibold text-lg transition-all border-2 border-indigo-200 hover:border-indigo-300"
               >
-                Watch demo
+                Learn more
               </Link>
             </div>
           </div>
