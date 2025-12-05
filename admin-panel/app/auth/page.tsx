@@ -55,9 +55,26 @@ function AuthForm() {
     }
   };
 
-  const handleOAuth = (provider: 'google' | 'apple') => {
-    // OAuth implementation will be added
-    alert(`${provider} OAuth coming soon!`);
+  const handleOAuth = async (provider: 'google' | 'apple') => {
+    try {
+      setLoading(true);
+      setError('');
+
+      // Get OAuth authorization URL from backend
+      const response = await fetch(`/api/v1/auth/oauth/${provider}`);
+
+      if (!response.ok) {
+        throw new Error(`Failed to initiate ${provider} OAuth`);
+      }
+
+      const data = await response.json();
+
+      // Redirect to OAuth provider
+      window.location.href = data.url;
+    } catch (err: any) {
+      setError(err.message || `Failed to connect with ${provider}`);
+      setLoading(false);
+    }
   };
 
   return (

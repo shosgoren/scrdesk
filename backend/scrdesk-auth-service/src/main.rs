@@ -79,6 +79,9 @@ async fn main() -> anyhow::Result<()> {
         .route("/api/v1/auth/password/change", post(handlers::auth::change_password))
         .route("/api/v1/auth/password/reset", post(handlers::auth::request_password_reset))
         .route("/api/v1/auth/password/reset/confirm", post(handlers::auth::confirm_password_reset))
+        .route("/api/v1/auth/oauth/google", get(handlers::oauth::google_auth_url))
+        .route("/api/v1/auth/oauth/google/callback", get(handlers::oauth::google_callback))
+        .route("/api/v1/auth/oauth/apple", get(handlers::oauth::apple_auth_url))
         .layer(
             CorsLayer::new()
                 .allow_origin(Any)

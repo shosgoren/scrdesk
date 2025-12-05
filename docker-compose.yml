@@ -68,6 +68,12 @@ services:
       JWT__SECRET: your-super-secret-jwt-key-change-in-production
       JWT__ACCESS_TOKEN_EXPIRY: 3600
       JWT__REFRESH_TOKEN_EXPIRY: 604800
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      GOOGLE_REDIRECT_URL: ${GOOGLE_REDIRECT_URL:-https://scrdesk.com/auth/oauth/callback?provider=google}
+      APPLE_CLIENT_ID: ${APPLE_CLIENT_ID:-}
+      APPLE_CLIENT_SECRET: ${APPLE_CLIENT_SECRET:-}
+      APPLE_REDIRECT_URL: ${APPLE_REDIRECT_URL:-https://scrdesk.com/auth/oauth/callback?provider=apple}
     ports:
       - "8001:8001"
     depends_on:
