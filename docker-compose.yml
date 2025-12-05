@@ -226,11 +226,13 @@ services:
     container_name: scrdesk-admin-panel
     environment:
       NEXT_PUBLIC_API_URL: ""
+      AUTH_SERVICE_URL: http://auth-service:8001
       NODE_ENV: production
     ports:
       - "3000:3000"
     depends_on:
       - core-server
+      - auth-service
     restart: unless-stopped
     stdin_open: true
     tty: true
