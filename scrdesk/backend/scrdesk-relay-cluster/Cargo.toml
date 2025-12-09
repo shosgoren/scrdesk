@@ -26,3 +26,5 @@ dotenv.workspace = true
 # hbb_common.workspace = true  # Disabled for now - git dependency causes Docker build issues
 bytes = "1.11"
 futures = "0.3"
+tokio-tungstenite = "0.21"
+uuid = { version = "1.6", features = ["v4"] }

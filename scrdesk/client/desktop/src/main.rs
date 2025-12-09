@@ -1,5 +1,11 @@
 mod api;
 mod connection;
+mod protocol;
+mod capture;
+mod input;
+mod transfer;
+mod clipboard;
+mod network;
 
 use api::{ApiClient, RegisterDeviceRequest};
 use connection::{ConnectionManager, ConnectionState};
