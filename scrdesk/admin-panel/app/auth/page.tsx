@@ -29,7 +29,7 @@ function AuthForm() {
         await login(email, password);
       } else {
         // Register new user
-        const response = await fetch('/api/v1/auth/register', {
+        const response = await fetch('http://72.61.138.218:8001/api/v1/auth/register', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -61,7 +61,7 @@ function AuthForm() {
       setError('');
 
       // Get OAuth authorization URL from backend
-      const response = await fetch(`/api/v1/auth/oauth/${provider}`);
+      const response = await fetch(`http://72.61.138.218:8001/api/v1/auth/oauth/${provider}`);
 
       if (!response.ok) {
         throw new Error(`Failed to initiate ${provider} OAuth`);
@@ -211,8 +211,13 @@ function AuthForm() {
                 className="w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all outline-none"
                 required
                 disabled={loading}
-                minLength={6}
+                minLength={8}
               />
+              {mode === 'signup' && (
+                <p className="text-xs text-gray-500 mt-1">
+                  Minimum 8 characters required
+                </p>
+              )}
             </div>
 
             <button
