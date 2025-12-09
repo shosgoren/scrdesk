@@ -1,0 +1,46 @@
+[package]
+name = "scrdesk-auth-service"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[[bin]]
+name = "scrdesk-auth-service"
+path = "src/main.rs"
+
+[dependencies]
+scrdesk-shared = { path = "../shared" }
+
+# Workspace dependencies
+tokio.workspace = true
+axum.workspace = true
+tower.workspace = true
+tower-http.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+sqlx.workspace = true
+redis.workspace = true
+jsonwebtoken.workspace = true
+bcrypt.workspace = true
+uuid.workspace = true
+chrono.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
+anyhow.workspace = true
+thiserror.workspace = true
+config.workspace = true
+dotenv.workspace = true
+validator.workspace = true
+reqwest.workspace = true
+lettre.workspace = true
+
+# Additional dependencies
+totp-rs = "5.4"
+qrcode = "0.14"
+rand = "0.8"
+base64 = "0.22"
+base32 = "0.5"
+oauth2 = "4.4"
+url = "2.5"

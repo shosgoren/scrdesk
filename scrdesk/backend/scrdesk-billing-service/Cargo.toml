@@ -1,0 +1,24 @@
+[package]
+name = "scrdesk-billing-service"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[[bin]]
+name = "scrdesk-billing-service"
+path = "src/main.rs"
+
+[dependencies]
+scrdesk-shared = { path = "../shared" }
+tokio.workspace = true
+axum.workspace = true
+serde.workspace = true
+sqlx.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
+anyhow.workspace = true
+config.workspace = true
+dotenv.workspace = true
+# stripe-rust.workspace = true  # Disabled - dependency version doesn't exist
+# async-stripe.workspace = true  # Will be enabled when Stripe integration is needed

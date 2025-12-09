@@ -1,0 +1,44 @@
+[package]
+name = "scrdesk-desktop"
+version = "1.0.0"
+edition = "2021"
+authors = ["ScrDesk Team"]
+license = "AGPL-3.0"
+
+[[bin]]
+name = "scrdesk"
+path = "src/main.rs"
+
+[dependencies]
+tokio = { version = "1.35", features = ["full"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+reqwest = { version = "0.11", features = ["json", "rustls-tls"] }
+anyhow = "1.0"
+tracing = "0.1"
+tracing-subscriber = "0.3"
+
+# UI Framework (using egui for cross-platform GUI)
+eframe = "0.25"
+egui = "0.25"
+
+# RustDesk protocol
+hbb_common = { git = "https://github.com/rustdesk/rustdesk-server" }
+bytes = "1.11"
+hostname = "0.4"
+
+# Platform-specific
+[target.'cfg(windows)'.dependencies]
+winapi = { version = "0.3", features = ["winuser"] }
+
+[target.'cfg(target_os = "macos")'.dependencies]
+cocoa = "0.25"
+
+[target.'cfg(target_os = "linux")'.dependencies]
+x11 = "2.21"
+
+[profile.release]
+opt-level = "z"
+lto = true
+codegen-units = 1
+strip = true
