@@ -59,16 +59,18 @@ export default function DownloadsPage() {
       color: 'green',
       downloads: [
         {
-          name: 'Windows Installer',
-          url: 'https://scrdesk.com/downloads/scrdesk-windows.exe',
-          size: 'Coming Soon',
+          name: 'Windows Installer (64-bit)',
+          url: 'https://scrdesk.com/downloads/ScrDesk-Windows-x64-v1.0.0.exe',
+          size: '5.8 MB',
+          arch: 'x86_64 - Windows 10+',
         },
       ],
       instructions: [
         'Download the Windows installer',
         'Double-click the downloaded .exe file',
-        'Follow the installation wizard',
-        'Launch ScrDesk from the Start Menu',
+        'Windows may show a security warning - click "More info" then "Run anyway"',
+        'The app will launch automatically',
+        'Choose "Quick Connect" for free 1-hour trial or "Sign In" for full access',
       ],
     },
     {
