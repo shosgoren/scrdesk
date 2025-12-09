@@ -1,0 +1,63 @@
+name: Build Windows Client
+
+on:
+  push:
+    branches: [ main, master ]
+    paths:
+      - 'scrdesk/client/desktop/**'
+  workflow_dispatch:  # Manuel olarak tetikleyebilme
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Rust
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        targets: x86_64-pc-windows-msvc
+
+    - name: Cache cargo registry
+      uses: actions/cache@v4
+      with:
+        path: ~/.cargo/registry
+        key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+
+    - name: Cache cargo index
+      uses: actions/cache@v4
+      with:
+        path: ~/.cargo/git
+        key: ${{ runner.os }}-cargo-git-${{ hashFiles('**/Cargo.lock') }}
+
+    - name: Cache cargo build
+      uses: actions/cache@v4
+      with:
+        path: scrdesk/client/desktop/target
+        key: ${{ runner.os }}-cargo-build-target-${{ hashFiles('**/Cargo.lock') }}
+
+    - name: Build Windows Release
+      working-directory: ./scrdesk/client/desktop
+      run: cargo build --release --target x86_64-pc-windows-msvc
+
+    - name: Rename binary
+      working-directory: ./scrdesk/client/desktop
+      run: |
+        copy target\x86_64-pc-windows-msvc\release\scrdesk.exe ScrDesk-Windows-x64-v1.0.0.exe
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: scrdesk-windows
+        path: scrdesk/client/desktop/ScrDesk-Windows-x64-v1.0.0.exe
+        retention-days: 90
+
+    - name: Create Release (if tagged)
+      if: startsWith(github.ref, 'refs/tags/v')
+      uses: softprops/action-gh-release@v1
+      with:
+        files: scrdesk/client/desktop/ScrDesk-Windows-x64-v1.0.0.exe
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
