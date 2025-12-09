@@ -27,15 +27,38 @@ hbb_common = { git = "https://github.com/rustdesk/rustdesk-server" }
 bytes = "1.11"
 hostname = "0.4"
 
+# Screen capture & encoding
+image = "0.24"
+scrap = "0.5"  # Cross-platform screen capture
+
+# Video encoding (using software encoder for compatibility)
+vpx = { version = "0.1", optional = true }  # VP8/VP9 codec
+
+# Clipboard
+arboard = "3.3"
+
+# Networking
+tokio-tungstenite = "0.21"
+futures = "0.3"
+
+# Utilities
+sha2 = "0.10"
+uuid = { version = "1.6", features = ["v4"] }
+
 # Platform-specific
 [target.'cfg(windows)'.dependencies]
-winapi = { version = "0.3", features = ["winuser"] }
+winapi = { version = "0.3", features = ["winuser", "wingdi", "d3d11"] }
+windows = { version = "0.52", features = ["Win32_Graphics_Gdi", "Win32_UI_Input_KeyboardAndMouse"] }
 
 [target.'cfg(target_os = "macos")'.dependencies]
 cocoa = "0.25"
+core-graphics = "0.23"
+core-foundation = "0.9"
+objc = "0.2"
 
 [target.'cfg(target_os = "linux")'.dependencies]
 x11 = "2.21"
+xcb = "1.2"
 
 [profile.release]
 opt-level = "z"
