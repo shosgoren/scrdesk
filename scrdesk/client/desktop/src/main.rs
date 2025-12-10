@@ -14,6 +14,14 @@ use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
 use tokio::sync::Mutex;
 
+// Remote desktop modules
+use capture::ScreenCapture;
+use input::InputSimulator;
+use transfer::FileTransferManager;
+use clipboard::ClipboardMonitor;
+use network::{NetworkConnection, ConnectionManager as NetConnectionManager};
+use protocol::Message;
+
 fn main() -> Result<(), eframe::Error> {
     tracing_subscriber::fmt::init();
 
@@ -57,6 +65,7 @@ struct ScrDeskApp {
     // Guest mode state
     guest_connection_id: String,
     guest_session_start: Option<u64>,
+    remote_id_input: String,
 
     // Device list
     available_devices: Arc<Mutex<Vec<api::Device>>>,
@@ -70,6 +79,19 @@ struct ScrDeskApp {
     is_logging_in: bool,
     is_registering_device: bool,
     is_loading_devices: bool,
+
+    // Remote desktop components
+    net_connection: Arc<Mutex<Option<NetConnectionManager>>>,
+    screen_capturer: Arc<Mutex<Option<Box<dyn ScreenCapture>>>>,
+    input_simulator: Arc<Mutex<Option<Box<dyn InputSimulator>>>>,
+    file_transfer: Arc<Mutex<Option<FileTransferManager>>>,
+    clipboard_monitor: Arc<Mutex<Option<ClipboardMonitor>>>,
+
+    // Remote screen state
+    remote_screen_texture: Option<egui::TextureHandle>,
+    remote_screen_size: (u32, u32),
+    is_streaming: bool,
+    remote_device_id: String,
 }
 
 #[derive(PartialEq)]
@@ -111,6 +133,7 @@ impl ScrDeskApp {
             device_key: Arc::new(Mutex::new(None)),
             guest_connection_id: String::new(),
             guest_session_start: None,
+            remote_id_input: String::new(),
             available_devices: Arc::new(Mutex::new(Vec::new())),
             selected_device: None,
             status_message: "Welcome to ScrDesk".to_string(),
@@ -118,7 +141,186 @@ impl ScrDeskApp {
             is_logging_in: false,
             is_registering_device: false,
             is_loading_devices: false,
+
+            // Remote desktop components (initialized on demand)
+            net_connection: Arc::new(Mutex::new(None)),
+            screen_capturer: Arc::new(Mutex::new(None)),
+            input_simulator: Arc::new(Mutex::new(None)),
+            file_transfer: Arc::new(Mutex::new(None)),
+            clipboard_monitor: Arc::new(Mutex::new(None)),
+
+            // Remote screen state
+            remote_screen_texture: None,
+            remote_screen_size: (1920, 1080),
+            is_streaming: false,
+            remote_device_id: String::new(),
         }
+    }
+
+    // Initialize remote desktop components
+    fn init_remote_desktop(&mut self, ctx: &egui::Context) {
+        let runtime_handle = self.runtime.handle().clone();
+        let net_connection = self.net_connection.clone();
+        let device_id = self.guest_connection_id.clone();
+
+        // Initialize network connection
+        self.runtime.spawn(async move {
+            match NetConnectionManager::new().await {
+                Ok(mut manager) => {
+                    if let Err(e) = manager.connect(device_id).await {
+                        tracing::error!("Failed to connect: {}", e);
+                    } else {
+                        *net_connection.lock().await = Some(manager);
+                        tracing::info!("Network connection initialized");
+                    }
+                }
+                Err(e) => {
+                    tracing::error!("Failed to create connection manager: {}", e);
+                }
+            }
+        });
+
+        // Initialize screen capturer
+        let capturer = capture::create_capturer();
+        if let Ok(cap) = capturer {
+            *self.screen_capturer.blocking_lock() = Some(cap);
+            tracing::info!("Screen capturer initialized");
+        }
+
+        // Initialize input simulator
+        let simulator = input::create_simulator();
+        if let Ok(sim) = simulator {
+            *self.input_simulator.blocking_lock() = Some(sim);
+            tracing::info!("Input simulator initialized");
+        }
+
+        // Initialize file transfer
+        let downloads_dir = std::env::current_dir()
+            .unwrap_or_default()
+            .join("downloads");
+        if let Ok(ft) = FileTransferManager::new(downloads_dir) {
+            *self.file_transfer.blocking_lock() = Some(ft);
+            tracing::info!("File transfer manager initialized");
+        }
+
+        // Initialize clipboard monitor
+        let ctx_clone = ctx.clone();
+        let net_conn = self.net_connection.clone();
+
+        if let Ok(monitor) = ClipboardMonitor::new(move |content| {
+            let net_conn = net_conn.clone();
+            let ctx = ctx_clone.clone();
+
+            tokio::spawn(async move {
+                if let Some(manager) = net_conn.lock().await.as_ref() {
+                    let msg = Message::ClipboardUpdate {
+                        content: format!("{:?}", content),
+                        mime_type: content.mime_type().to_string(),
+                    };
+                    let _ = manager.send(msg).await;
+                    ctx.request_repaint();
+                }
+            });
+        }) {
+            *self.clipboard_monitor.blocking_lock() = Some(monitor);
+            tracing::info!("Clipboard monitor initialized");
+        }
+    }
+
+    // Start connection to remote device
+    fn start_connection(&mut self, remote_id: String, ctx: &egui::Context) {
+        self.remote_device_id = remote_id.clone();
+        self.status_message = format!("Connecting to {}...", remote_id);
+
+        let net_connection = self.net_connection.clone();
+        let ctx_clone = ctx.clone();
+
+        self.runtime.spawn(async move {
+            if let Some(manager) = net_connection.lock().await.as_mut() {
+                match manager.request_connection(remote_id).await {
+                    Ok(_) => {
+                        tracing::info!("Connection request sent");
+                        ctx_clone.request_repaint();
+                    }
+                    Err(e) => {
+                        tracing::error!("Connection request failed: {}", e);
+                        ctx_clone.request_repaint();
+                    }
+                }
+            }
+        });
+    }
+
+    // Handle incoming messages
+    fn handle_incoming_messages(&mut self, ctx: &egui::Context) {
+        let net_connection = self.net_connection.clone();
+        let input_simulator = self.input_simulator.clone();
+        let file_transfer = self.file_transfer.clone();
+        let clipboard_monitor = self.clipboard_monitor.clone();
+        let ctx_clone = ctx.clone();
+
+        self.runtime.spawn(async move {
+            if let Some(manager) = net_connection.lock().await.as_ref() {
+                if let Some(msg) = manager.recv().await {
+                    match msg {
+                        Message::ConnectResponse { success, session_id, error } => {
+                            if success {
+                                tracing::info!("Connected! Session: {:?}", session_id);
+                            } else {
+                                tracing::error!("Connection failed: {:?}", error);
+                            }
+                            ctx_clone.request_repaint();
+                        }
+
+                        Message::VideoFrame { data, width, height, .. } => {
+                            // TODO: Decode and render frame
+                            tracing::debug!("Received video frame: {}x{}", width, height);
+                        }
+
+                        Message::MouseMove { x, y } => {
+                            if let Some(sim) = input_simulator.lock().await.as_ref() {
+                                let _ = sim.simulate_mouse_move(x, y);
+                            }
+                        }
+
+                        Message::MouseButton { button, pressed } => {
+                            if let Some(sim) = input_simulator.lock().await.as_ref() {
+                                let _ = sim.simulate_mouse_button(button, pressed);
+                            }
+                        }
+
+                        Message::MouseScroll { delta_x, delta_y } => {
+                            if let Some(sim) = input_simulator.lock().await.as_ref() {
+                                let _ = sim.simulate_mouse_scroll(delta_x, delta_y);
+                            }
+                        }
+
+                        Message::KeyboardEvent { key, pressed, modifiers } => {
+                            if let Some(sim) = input_simulator.lock().await.as_ref() {
+                                let _ = sim.simulate_key(&key, pressed, modifiers);
+                            }
+                        }
+
+                        Message::FileChunk { transfer_id, chunk_index, data } => {
+                            if let Some(ft) = file_transfer.lock().await.as_mut() {
+                                let _ = ft.write_chunk(&transfer_id, chunk_index, data);
+                            }
+                        }
+
+                        Message::ClipboardUpdate { content, .. } => {
+                            if let Some(monitor) = clipboard_monitor.lock().await.as_mut() {
+                                // TODO: Parse and set clipboard content
+                                tracing::info!("Received clipboard update");
+                            }
+                        }
+
+                        _ => {
+                            tracing::debug!("Received message: {:?}", msg);
+                        }
+                    }
+                }
+            }
+        });
     }
 
     fn handle_login(&mut self, ctx: &egui::Context) {
@@ -155,7 +357,7 @@ impl ScrDeskApp {
         });
     }
 
-    fn start_guest_session(&mut self) {
+    fn start_guest_session(&mut self, ctx: &egui::Context) {
         let now = SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .unwrap()
@@ -166,6 +368,9 @@ impl ScrDeskApp {
         self.guest_connection_id = format!("GUEST-{}", now);
         self.mode = AppMode::GuestMode;
         self.status_message = "Guest mode activated - 1 hour free trial".to_string();
+
+        // Initialize remote desktop components
+        self.init_remote_desktop(ctx);
     }
 
     fn get_remaining_guest_time(&self) -> Option<u64> {
@@ -193,7 +398,7 @@ impl ScrDeskApp {
         format!("{}:{:02}", minutes, secs)
     }
 
-    fn render_initial_mode(&mut self, ui: &mut egui::Ui) {
+    fn render_initial_mode(&mut self, ui: &mut egui::Ui, ctx: &egui::Context) {
         ui.vertical_centered(|ui| {
             ui.add_space(80.0);
 
@@ -225,7 +430,7 @@ impl ScrDeskApp {
             .rounding(35.0);
 
             if ui.add(guest_button).clicked() {
-                self.start_guest_session();
+                self.start_guest_session(ctx);
             }
 
             ui.add_space(20.0);
@@ -357,7 +562,7 @@ impl ScrDeskApp {
         });
     }
 
-    fn render_guest_mode(&mut self, ui: &mut egui::Ui) {
+    fn render_guest_mode(&mut self, ui: &mut egui::Ui, ctx: &egui::Context) {
         ui.vertical_centered(|ui| {
             ui.add_space(40.0);
 
@@ -420,8 +625,7 @@ impl ScrDeskApp {
 
             ui.horizontal(|ui| {
                 ui.add_space(200.0);
-                let mut remote_id = String::new();
-                let input = egui::TextEdit::singleline(&mut remote_id)
+                let input = egui::TextEdit::singleline(&mut self.remote_id_input)
                     .hint_text("Enter remote connection ID")
                     .min_size(egui::vec2(400.0, 40.0));
                 ui.add(input);
@@ -441,8 +645,11 @@ impl ScrDeskApp {
                 .min_size(egui::vec2(200.0, 50.0))
                 .rounding(25.0);
 
-                if ui.add(connect_btn).clicked() {
-                    self.status_message = "Connecting...".to_string();
+                if ui.add(connect_btn).clicked() && !self.remote_id_input.is_empty() {
+                    let remote_id = self.remote_id_input.clone();
+                    self.start_connection(remote_id, ctx);
+                    self.mode = AppMode::Connected;
+                    self.is_streaming = true;
                 }
             });
 
@@ -558,14 +765,24 @@ impl eframe::App for ScrDeskApp {
         // Central panel - different views based on mode
         egui::CentralPanel::default().show(ctx, |ui| {
             match self.mode {
-                AppMode::Initial => self.render_initial_mode(ui),
+                AppMode::Initial => self.render_initial_mode(ui, ctx),
                 AppMode::Login => self.render_login_mode(ui, ctx),
-                AppMode::GuestMode => self.render_guest_mode(ui),
+                AppMode::GuestMode => self.render_guest_mode(ui, ctx),
                 AppMode::Connected => self.render_connected_mode(ui),
             }
         });
 
+        // Handle incoming messages when connected
+        if self.is_streaming {
+            self.handle_incoming_messages(ctx);
+        }
+
+        // Update clipboard monitor
+        if let Some(monitor) = self.clipboard_monitor.blocking_lock().as_mut() {
+            monitor.tick();
+        }
+
         // Request repaint for animations and timer updates
-        ctx.request_repaint_after(std::time::Duration::from_secs(1));
+        ctx.request_repaint_after(std::time::Duration::from_millis(16)); // ~60 FPS
     }
 }
