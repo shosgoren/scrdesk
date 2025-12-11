@@ -248,18 +248,12 @@ impl ScrDeskApp {
 
         // Initialize network connection
         self.runtime.spawn(async move {
-            match NetConnectionManager::new().await {
-                Ok(mut manager) => {
-                    if let Err(e) = manager.connect(device_id).await {
-                        tracing::error!("Failed to connect: {}", e);
-                    } else {
-                        *net_connection.lock().await = Some(manager);
-                        tracing::info!("Network connection initialized");
-                    }
-                }
-                Err(e) => {
-                    tracing::error!("Failed to create connection manager: {}", e);
-                }
+            let mut manager = NetConnectionManager::new();
+            if let Err(e) = manager.connect(device_id).await {
+                tracing::error!("Failed to connect: {}", e);
+            } else {
+                *net_connection.lock().await = Some(manager);
+                tracing::info!("Network connection initialized");
             }
         });
 

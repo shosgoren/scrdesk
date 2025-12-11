@@ -1,6 +1,6 @@
 use super::{Frame, ScreenCapture};
 use anyhow::{Context, Result};
-use core_graphics::display::{CGDisplay, CGDisplayStreamRef, kCGDisplayStreamShowCursor};
+use core_graphics::display::CGDisplay;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 pub struct MacOSCapturer {
@@ -58,7 +58,7 @@ impl ScreenCapture for MacOSCapturer {
         for y in 0..height {
             for x in 0..width {
                 let offset = (y as usize * bytes_per_row) + (x as usize * bytes_per_pixel);
-                if offset + 3 < data.len() {
+                if offset + 3 < data.len() as usize {
                     rgba_data.push(data[offset + 2]); // R
                     rgba_data.push(data[offset + 1]); // G
                     rgba_data.push(data[offset]);     // B

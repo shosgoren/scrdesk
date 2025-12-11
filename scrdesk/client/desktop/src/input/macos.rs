@@ -1,19 +1,22 @@
 use super::InputSimulator;
 use crate::protocol::{KeyModifiers, MouseButton};
 use anyhow::Result;
-use core_graphics::event::{CGEvent, CGEventTapLocation, CGEventType, CGKeyCode, CGMouseButton, EventField, ScrollEventUnit};
+use core_graphics::event::{CGEvent, CGEventTapLocation, CGEventType, CGKeyCode, CGMouseButton, EventField, CGEventField};
+use core_graphics::geometry::CGPoint;
 use core_graphics::event_source::{CGEventSource, CGEventSourceStateID};
 
 pub struct MacOSSimulator {
-    event_source: CGEventSource,
+    // CGEventSource is not Send, so we create it on demand
 }
 
 impl MacOSSimulator {
     pub fn new() -> Result<Self> {
-        let event_source = CGEventSource::new(CGEventSourceStateID::CombinedSessionState)
-            .map_err(|_| anyhow::anyhow!("Failed to create CGEventSource"))?;
+        Ok(Self {})
+    }
 
-        Ok(Self { event_source })
+    fn create_event_source(&self) -> Result<CGEventSource> {
+        CGEventSource::new(CGEventSourceStateID::CombinedSessionState)
+            .map_err(|_| anyhow::anyhow!("Failed to create CGEventSource"))
     }
 
     fn map_mouse_button(&self, button: MouseButton) -> CGMouseButton {
@@ -28,10 +31,11 @@ impl MacOSSimulator {
 
 impl InputSimulator for MacOSSimulator {
     fn simulate_mouse_move(&self, x: i32, y: i32) -> Result<()> {
+        let source = self.create_event_source()?;
         let event = CGEvent::new_mouse_event(
-            self.event_source.clone(),
+            source,
             CGEventType::MouseMoved,
-            (x as f64, y as f64),
+            CGPoint::new(x as f64, y as f64),
             CGMouseButton::Left,
         ).map_err(|_| anyhow::anyhow!("Failed to create mouse move event"))?;
 
@@ -40,6 +44,7 @@ impl InputSimulator for MacOSSimulator {
     }
 
     fn simulate_mouse_button(&self, button: MouseButton, pressed: bool) -> Result<()> {
+        let source = self.create_event_source()?;
         let cg_button = self.map_mouse_button(button);
         let event_type = if pressed {
             match button {
@@ -56,12 +61,12 @@ impl InputSimulator for MacOSSimulator {
         };
 
         // Get current mouse position
-        let location = CGEvent::new(self.event_source.clone())
+        let location = CGEvent::new(source.clone())
             .map_err(|_| anyhow::anyhow!("Failed to get mouse location"))?
             .location();
 
         let event = CGEvent::new_mouse_event(
-            self.event_source.clone(),
+            source,
             event_type,
             location,
             cg_button,
@@ -71,15 +76,19 @@ impl InputSimulator for MacOSSimulator {
         Ok(())
     }
 
-    fn simulate_mouse_scroll(&self, delta_x: i32, delta_y: i32) -> Result<()> {
-        let event = CGEvent::new_scroll_event(
-            self.event_source.clone(),
-            ScrollEventUnit::PIXEL,
-            2, // wheel count
-            delta_y,
-            delta_x,
-            0,
+    fn simulate_mouse_scroll(&self, _delta_x: i32, delta_y: i32) -> Result<()> {
+        // core-graphics 0.23 doesn't have scroll event API
+        // Use mouse wheel event instead
+        let source = self.create_event_source()?;
+        let event = CGEvent::new_mouse_event(
+            source,
+            CGEventType::ScrollWheel,
+            CGPoint::new(0.0, 0.0),
+            CGMouseButton::Left,
         ).map_err(|_| anyhow::anyhow!("Failed to create scroll event"))?;
+
+        // Set scroll delta (field 11 is scroll wheel delta axis 1)
+        event.set_integer_value_field(EventField::SCROLL_WHEEL_EVENT_DELTA_AXIS_1, delta_y as i64);
 
         event.post(CGEventTapLocation::HID);
         Ok(())
@@ -89,8 +98,9 @@ impl InputSimulator for MacOSSimulator {
         // Map key string to CGKeyCode
         let keycode = map_key_to_keycode(key)?;
 
+        let source = self.create_event_source()?;
         let event = CGEvent::new_keyboard_event(
-            self.event_source.clone(),
+            source,
             keycode,
             pressed,
         ).map_err(|_| anyhow::anyhow!("Failed to create keyboard event"))?;

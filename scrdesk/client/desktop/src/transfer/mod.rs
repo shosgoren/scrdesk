@@ -119,7 +119,12 @@ impl FileTransferManager {
         if bytes_read == 0 {
             // Transfer complete
             state.completed = true;
-            state.checksum = Some(self.calculate_checksum(transfer_id)?);
+            // Calculate checksum after dropping the mutable borrow
+            drop(state);
+            let checksum = self.calculate_checksum(transfer_id)?;
+            if let Some(state) = self.transfers.get_mut(transfer_id) {
+                state.checksum = Some(checksum);
+            }
             return Ok(None);
         }
 
@@ -207,8 +212,14 @@ impl FileTransferManager {
         // Check if complete
         if state.chunk_count >= state.expected_chunks {
             state.completed = true;
-            state.checksum = Some(self.calculate_checksum(transfer_id)?);
-            tracing::info!("Download complete: {} (checksum: {})", state.info.filename, state.checksum.as_ref().unwrap());
+            let filename = state.info.filename.clone();
+            // Calculate checksum after dropping the mutable borrow
+            drop(state);
+            let checksum = self.calculate_checksum(transfer_id)?;
+            if let Some(state) = self.transfers.get_mut(transfer_id) {
+                state.checksum = Some(checksum.clone());
+            }
+            tracing::info!("Download complete: {} (checksum: {})", filename, checksum);
         }
 
         Ok(())

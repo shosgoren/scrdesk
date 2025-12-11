@@ -55,7 +55,7 @@ impl NetworkConnection {
     }
 
     pub async fn get_state(&self) -> ConnectionState {
-        *self.state.lock().await
+        self.state.lock().await.clone()
     }
 
     pub async fn disconnect(&self) {
