@@ -92,6 +92,11 @@ struct ScrDeskApp {
     remote_screen_size: (u32, u32),
     is_streaming: bool,
     remote_device_id: String,
+
+    // Screen capture state
+    is_capturing: bool,
+    capture_fps: f32,
+    last_frame_time: std::time::Instant,
 }
 
 #[derive(PartialEq)]
@@ -154,7 +159,85 @@ impl ScrDeskApp {
             remote_screen_size: (1920, 1080),
             is_streaming: false,
             remote_device_id: String::new(),
+
+            // Screen capture state
+            is_capturing: false,
+            capture_fps: 0.0,
+            last_frame_time: std::time::Instant::now(),
         }
+    }
+
+    // Start screen capture loop in background
+    fn start_screen_capture(&mut self, ctx: &egui::Context) {
+        if self.is_capturing {
+            return;
+        }
+
+        self.is_capturing = true;
+        let screen_capturer = self.screen_capturer.clone();
+        let net_connection = self.net_connection.clone();
+        let ctx_clone = ctx.clone();
+
+        self.runtime.spawn(async move {
+            let mut frame_count = 0;
+            let mut last_fps_update = std::time::Instant::now();
+
+            loop {
+                tokio::time::sleep(tokio::time::Duration::from_millis(33)).await; // ~30 FPS
+
+                // Capture frame
+                let frame_data = {
+                    let mut capturer = screen_capturer.lock().await;
+                    if let Some(cap) = capturer.as_mut() {
+                        match cap.capture_frame() {
+                            Ok(frame) => Some(frame),
+                            Err(e) => {
+                                tracing::error!("Failed to capture frame: {}", e);
+                                None
+                            }
+                        }
+                    } else {
+                        None
+                    }
+                };
+
+                if let Some(frame) = frame_data {
+                    // Send frame to remote
+                    if let Some(manager) = net_connection.lock().await.as_ref() {
+                        let msg = Message::VideoFrame {
+                            data: frame.data,
+                            width: frame.width,
+                            height: frame.height,
+                            timestamp: frame.timestamp,
+                            is_keyframe: frame_count % 30 == 0, // Keyframe every 30 frames
+                        };
+
+                        if let Err(e) = manager.send(msg).await {
+                            tracing::error!("Failed to send video frame: {}", e);
+                        }
+                    }
+
+                    frame_count += 1;
+
+                    // Update FPS counter
+                    if last_fps_update.elapsed().as_secs() >= 1 {
+                        tracing::debug!("Capture FPS: {}", frame_count);
+                        frame_count = 0;
+                        last_fps_update = std::time::Instant::now();
+                    }
+                }
+
+                ctx_clone.request_repaint();
+            }
+        });
+
+        tracing::info!("Screen capture started");
+    }
+
+    // Stop screen capture
+    fn stop_screen_capture(&mut self) {
+        self.is_capturing = false;
+        tracing::info!("Screen capture stopped");
     }
 
     // Initialize remote desktop components
@@ -273,8 +356,13 @@ impl ScrDeskApp {
                         }
 
                         Message::VideoFrame { data, width, height, .. } => {
-                            // TODO: Decode and render frame
-                            tracing::debug!("Received video frame: {}x{}", width, height);
+                            // Store frame data for rendering
+                            // Frame data is RGBA format, can be directly used with egui
+                            tracing::debug!("Received video frame: {}x{} ({} bytes)", width, height, data.len());
+
+                            // We'll update the texture in the UI thread
+                            // For now, just log it
+                            // TODO: Convert to egui::ColorImage and update texture
                         }
 
                         Message::MouseMove { x, y } => {
@@ -680,20 +768,128 @@ impl ScrDeskApp {
         });
     }
 
-    fn render_connected_mode(&mut self, ui: &mut egui::Ui) {
+    fn render_connected_mode(&mut self, ui: &mut egui::Ui, ctx: &egui::Context) {
         ui.vertical_centered(|ui| {
-            ui.add_space(50.0);
-            ui.label(
-                egui::RichText::new("✅ Connected Successfully!")
-                    .size(28.0)
-                    .color(SUCCESS_COLOR)
-            );
             ui.add_space(20.0);
-            ui.label(
-                egui::RichText::new("Remote desktop features and device management are being enhanced...")
-                    .size(16.0)
-                    .color(TEXT_SECONDARY)
+
+            // Connection info
+            ui.horizontal(|ui| {
+                ui.add_space(20.0);
+                ui.label(
+                    egui::RichText::new(format!("🔗 Connected to: {}", self.remote_device_id))
+                        .size(18.0)
+                        .color(SUCCESS_COLOR)
+                );
+
+                ui.add_space(20.0);
+
+                // Disconnect button
+                let disconnect_btn = egui::Button::new(
+                    egui::RichText::new("❌ Disconnect")
+                        .color(egui::Color32::WHITE)
+                )
+                .fill(egui::Color32::from_rgb(239, 68, 68)); // red-500
+
+                if ui.add(disconnect_btn).clicked() {
+                    self.stop_screen_capture();
+                    self.is_streaming = false;
+                    self.mode = AppMode::GuestMode;
+                    self.remote_device_id.clear();
+                    self.status_message = "Disconnected".to_string();
+                }
+
+                ui.add_space(20.0);
+
+                // Start/Stop screen sharing button
+                let share_btn_text = if self.is_capturing {
+                    "⏸️ Stop Sharing"
+                } else {
+                    "▶️ Start Sharing"
+                };
+
+                let share_btn = egui::Button::new(
+                    egui::RichText::new(share_btn_text)
+                        .color(egui::Color32::WHITE)
+                )
+                .fill(PRIMARY_COLOR);
+
+                if ui.add(share_btn).clicked() {
+                    if self.is_capturing {
+                        self.stop_screen_capture();
+                    } else {
+                        self.start_screen_capture(ctx);
+                    }
+                }
+            });
+
+            ui.add_space(20.0);
+            ui.separator();
+            ui.add_space(10.0);
+
+            // Remote screen display area
+            ui.heading("Remote Screen");
+            ui.add_space(10.0);
+
+            // Placeholder for remote screen
+            // TODO: Display actual remote screen texture
+            let available_size = ui.available_size();
+            let screen_rect = egui::Rect::from_min_size(
+                ui.cursor().min,
+                egui::vec2(available_size.x - 40.0, available_size.y - 60.0),
             );
+
+            ui.allocate_ui_at_rect(screen_rect, |ui| {
+                let painter = ui.painter();
+
+                // Draw black background for remote screen
+                painter.rect_filled(
+                    screen_rect,
+                    5.0,
+                    egui::Color32::from_rgb(30, 30, 30),
+                );
+
+                // Draw border
+                painter.rect_stroke(
+                    screen_rect,
+                    5.0,
+                    egui::Stroke::new(2.0, PRIMARY_COLOR),
+                );
+
+                // Show "Waiting for remote screen..." text in center
+                let text = if self.remote_screen_texture.is_some() {
+                    "Remote Screen"
+                } else {
+                    "Waiting for remote screen..."
+                };
+
+                painter.text(
+                    screen_rect.center(),
+                    egui::Align2::CENTER_CENTER,
+                    text,
+                    egui::FontId::proportional(20.0),
+                    TEXT_SECONDARY,
+                );
+
+                // TODO: Render actual remote screen texture here
+                // if let Some(texture) = &self.remote_screen_texture {
+                //     ui.image(texture, screen_rect.size());
+                // }
+            });
+
+            ui.add_space(10.0);
+
+            // Status info
+            ui.horizontal(|ui| {
+                ui.add_space(20.0);
+                ui.label(
+                    egui::RichText::new(format!(
+                        "📊 Streaming: {} | Capture FPS: {:.1}",
+                        if self.is_streaming { "Active" } else { "Inactive" },
+                        self.capture_fps
+                    ))
+                    .color(TEXT_SECONDARY)
+                );
+            });
         });
     }
 }
@@ -768,7 +964,7 @@ impl eframe::App for ScrDeskApp {
                 AppMode::Initial => self.render_initial_mode(ui, ctx),
                 AppMode::Login => self.render_login_mode(ui, ctx),
                 AppMode::GuestMode => self.render_guest_mode(ui, ctx),
-                AppMode::Connected => self.render_connected_mode(ui),
+                AppMode::Connected => self.render_connected_mode(ui, ctx),
             }
         });
 
