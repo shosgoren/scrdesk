@@ -1,3 +1,6 @@
+// Windows GUI mode - hide console window
+#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+
 mod api;
 mod connection;
 mod protocol;
@@ -23,6 +26,54 @@ use network::{NetworkConnection, ConnectionManager as NetConnectionManager};
 use protocol::Message;
 
 fn main() -> Result<(), eframe::Error> {
+    // Set up panic handler for Windows to show error dialog
+    #[cfg(windows)]
+    {
+        std::panic::set_hook(Box::new(|panic_info| {
+            let msg = if let Some(s) = panic_info.payload().downcast_ref::<&str>() {
+                s.to_string()
+            } else if let Some(s) = panic_info.payload().downcast_ref::<String>() {
+                s.clone()
+            } else {
+                "Unknown panic occurred".to_string()
+            };
+
+            let location = if let Some(location) = panic_info.location() {
+                format!(" at {}:{}", location.file(), location.line())
+            } else {
+                String::new()
+            };
+
+            let full_msg = format!("ScrDesk encountered an error:\n\n{}{}\n\nPlease report this issue.", msg, location);
+
+            // Show Windows message box
+            #[cfg(windows)]
+            unsafe {
+                use std::ffi::OsStr;
+                use std::os::windows::ffi::OsStrExt;
+                use std::iter::once;
+
+                let wide_msg: Vec<u16> = OsStr::new(&full_msg)
+                    .encode_wide()
+                    .chain(once(0))
+                    .collect();
+                let wide_title: Vec<u16> = OsStr::new("ScrDesk Error")
+                    .encode_wide()
+                    .chain(once(0))
+                    .collect();
+
+                winapi::um::winuser::MessageBoxW(
+                    std::ptr::null_mut(),
+                    wide_msg.as_ptr(),
+                    wide_title.as_ptr(),
+                    winapi::um::winuser::MB_OK | winapi::um::winuser::MB_ICONERROR,
+                );
+            }
+        }));
+    }
+
+    // Initialize logging
+    #[cfg(debug_assertions)]
     tracing_subscriber::fmt::init();
 
     let options = eframe::NativeOptions {
@@ -36,10 +87,45 @@ fn main() -> Result<(), eframe::Error> {
         "ScrDesk PRO Enterprise",
         options,
         Box::new(|cc| {
-            let runtime = tokio::runtime::Runtime::new().unwrap();
+            let runtime = match tokio::runtime::Runtime::new() {
+                Ok(rt) => rt,
+                Err(e) => {
+                    eprintln!("Failed to create Tokio runtime: {}", e);
+                    #[cfg(windows)]
+                    {
+                        show_error_dialog(&format!("Failed to initialize ScrDesk:\n\n{}", e));
+                    }
+                    panic!("Failed to create Tokio runtime: {}", e);
+                }
+            };
             Box::new(ScrDeskApp::new(cc, runtime))
         }),
     )
+}
+
+#[cfg(windows)]
+fn show_error_dialog(message: &str) {
+    unsafe {
+        use std::ffi::OsStr;
+        use std::os::windows::ffi::OsStrExt;
+        use std::iter::once;
+
+        let wide_msg: Vec<u16> = OsStr::new(message)
+            .encode_wide()
+            .chain(once(0))
+            .collect();
+        let wide_title: Vec<u16> = OsStr::new("ScrDesk Error")
+            .encode_wide()
+            .chain(once(0))
+            .collect();
+
+        winapi::um::winuser::MessageBoxW(
+            std::ptr::null_mut(),
+            wide_msg.as_ptr(),
+            wide_title.as_ptr(),
+            winapi::um::winuser::MB_OK | winapi::um::winuser::MB_ICONERROR,
+        );
+    }
 }
 
 struct ScrDeskApp {
