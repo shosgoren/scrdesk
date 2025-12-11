@@ -68,6 +68,79 @@ export default function HomePage() {
             </div>
           </div>
 
+          {/* Downloads Section */}
+          <div className="mt-20 mb-20">
+            <div className="text-center mb-12">
+              <h2 className="text-4xl font-bold mb-4 bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+                Download ScrDesk
+              </h2>
+              <p className="text-lg text-gray-600">
+                Get started with our desktop clients. No login required for download.
+              </p>
+            </div>
+
+            <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+              {/* macOS Download */}
+              <div className="bg-white rounded-3xl shadow-lg hover:shadow-2xl transition-all p-8 border-2 border-transparent hover:border-indigo-300">
+                <div className="text-6xl mb-4 text-center">🍎</div>
+                <h3 className="text-2xl font-bold mb-3 text-gray-900 text-center">macOS</h3>
+                <p className="text-gray-600 mb-6 text-center">For Mac computers</p>
+                <a
+                  href="https://scrdesk.com/downloads/ScrDesk-macOS-universal-v1.0.0.dmg"
+                  className="block w-full py-3 px-6 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-full hover:from-indigo-700 hover:to-purple-700 font-semibold text-center transition-all hover:shadow-lg"
+                  download
+                >
+                  Download DMG
+                </a>
+                <p className="text-xs text-gray-500 mt-3 text-center">
+                  5.7 MB • Universal (ARM64 + Intel)
+                </p>
+              </div>
+
+              {/* Windows Download */}
+              <div className="bg-white rounded-3xl shadow-lg hover:shadow-2xl transition-all p-8 border-2 border-transparent hover:border-indigo-300">
+                <div className="text-6xl mb-4 text-center">🪟</div>
+                <h3 className="text-2xl font-bold mb-3 text-gray-900 text-center">Windows</h3>
+                <p className="text-gray-600 mb-6 text-center">For Windows 10+</p>
+                <a
+                  href="https://scrdesk.com/downloads/ScrDesk-Windows-x64-v1.0.0.exe"
+                  className="block w-full py-3 px-6 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-full hover:from-indigo-700 hover:to-purple-700 font-semibold text-center transition-all hover:shadow-lg"
+                  download
+                >
+                  Download EXE
+                </a>
+                <p className="text-xs text-gray-500 mt-3 text-center">
+                  5.8 MB • x86_64
+                </p>
+              </div>
+
+              {/* Android Download */}
+              <div className="bg-white rounded-3xl shadow-lg hover:shadow-2xl transition-all p-8 border-2 border-transparent hover:border-indigo-300">
+                <div className="text-6xl mb-4 text-center">🤖</div>
+                <h3 className="text-2xl font-bold mb-3 text-gray-900 text-center">Android</h3>
+                <p className="text-gray-600 mb-6 text-center">For Android devices</p>
+                <button
+                  disabled
+                  className="block w-full py-3 px-6 bg-gray-300 text-gray-500 rounded-full font-semibold text-center cursor-not-allowed"
+                >
+                  Coming Soon
+                </button>
+                <p className="text-xs text-gray-500 mt-3 text-center">
+                  Android 8.0+
+                </p>
+              </div>
+            </div>
+
+            {/* Installation Note */}
+            <div className="mt-8 p-6 bg-blue-50 rounded-2xl border border-blue-200 max-w-3xl mx-auto">
+              <p className="text-sm text-blue-900 text-center">
+                <span className="font-semibold">💡 First time?</span> After downloading, you may need to allow the app in your system security settings.
+                <br />
+                <span className="text-blue-700">macOS users:</span> Right-click the app and select "Open" to bypass Gatekeeper.
+              </p>
+            </div>
+          </div>
+
           {/* Feature Cards */}
           <div className="grid md:grid-cols-3 gap-8 mt-20">
             {[
