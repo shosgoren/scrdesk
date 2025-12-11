@@ -1,0 +1,57 @@
+name: Build Windows Desktop Client
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'client/desktop/**'
+      - '.github/workflows/build-windows.yml'
+  workflow_dispatch:
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          target: x86_64-pc-windows-msvc
+
+      - name: Build Windows client
+        run: |
+          cd client/desktop
+          cargo build --release --target x86_64-pc-windows-msvc
+
+      - name: Rename executable
+        run: |
+          mkdir dist
+          copy client\desktop\target\x86_64-pc-windows-msvc\release\scrdesk.exe dist\ScrDesk-Windows-x64-v1.0.0.exe
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: scrdesk-windows-x64
+          path: dist/ScrDesk-Windows-x64-v1.0.0.exe
+
+      - name: Get file size
+        id: filesize
+        run: |
+          $size = (Get-Item dist\ScrDesk-Windows-x64-v1.0.0.exe).length / 1MB
+          echo "size=$size MB" >> $env:GITHUB_OUTPUT
+
+      - name: Comment on commit
+        if: github.event_name == 'push'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const size = '${{ steps.filesize.outputs.size }}';
+            await github.rest.repos.createCommitComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              commit_sha: context.sha,
+              body: `✅ Windows build completed!\n\nFile size: ${size}\n\nDownload: [ScrDesk-Windows-x64-v1.0.0.exe](${context.payload.repository.html_url}/actions/runs/${context.runId})`
+            });
