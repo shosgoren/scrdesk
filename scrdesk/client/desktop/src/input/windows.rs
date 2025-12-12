@@ -3,7 +3,7 @@ use crate::protocol::{KeyModifiers, MouseButton};
 use anyhow::Result;
 use windows::Win32::UI::Input::KeyboardAndMouse::{
     SendInput, INPUT, INPUT_0, INPUT_KEYBOARD, INPUT_MOUSE, KEYBDINPUT, KEYBD_EVENT_FLAGS,
-    KEYEVENTF_KEYUP, KEYEVENTF_SCANCODE, MOUSEEVENTF_ABSOLUTE, MOUSEEVENTF_LEFTDOWN,
+    KEYEVENTF_KEYUP, KEYEVENTF_SCANCODE, MOUSE_EVENT_FLAGS, MOUSEEVENTF_ABSOLUTE, MOUSEEVENTF_LEFTDOWN,
     MOUSEEVENTF_LEFTUP, MOUSEEVENTF_MIDDLEDOWN, MOUSEEVENTF_MIDDLEUP, MOUSEEVENTF_MOVE,
     MOUSEEVENTF_RIGHTDOWN, MOUSEEVENTF_RIGHTUP, MOUSEEVENTF_WHEEL, MOUSEEVENTF_XDOWN,
     MOUSEEVENTF_XUP, MOUSEINPUT, VIRTUAL_KEY, VK_BACK, VK_CONTROL, VK_DELETE, VK_DOWN,
@@ -22,7 +22,7 @@ impl WindowsSimulator {
         Ok(Self)
     }
 
-    fn send_mouse_input(&self, flags: u32, data: u32, dx: i32, dy: i32) -> Result<()> {
+    fn send_mouse_input(&self, flags: MOUSE_EVENT_FLAGS, data: u32, dx: i32, dy: i32) -> Result<()> {
         unsafe {
             let input = INPUT {
                 r#type: INPUT_MOUSE,
@@ -31,7 +31,7 @@ impl WindowsSimulator {
                         dx,
                         dy,
                         mouseData: data,
-                        dwFlags: MOUSEEVENTF_ABSOLUTE | flags.into(),
+                        dwFlags: MOUSEEVENTF_ABSOLUTE | flags,
                         time: 0,
                         dwExtraInfo: 0,
                     },
@@ -71,14 +71,14 @@ impl WindowsSimulator {
         Ok(())
     }
 
-    fn map_mouse_button(&self, button: MouseButton) -> (u32, u32) {
+    fn map_mouse_button(&self, button: MouseButton) -> (MOUSE_EVENT_FLAGS, MOUSE_EVENT_FLAGS) {
         // Returns (down_flag, up_flag)
         match button {
-            MouseButton::Left => (MOUSEEVENTF_LEFTDOWN.0, MOUSEEVENTF_LEFTUP.0),
-            MouseButton::Right => (MOUSEEVENTF_RIGHTDOWN.0, MOUSEEVENTF_RIGHTUP.0),
-            MouseButton::Middle => (MOUSEEVENTF_MIDDLEDOWN.0, MOUSEEVENTF_MIDDLEUP.0),
-            MouseButton::Back => (MOUSEEVENTF_XDOWN.0, MOUSEEVENTF_XUP.0),
-            MouseButton::Forward => (MOUSEEVENTF_XDOWN.0, MOUSEEVENTF_XUP.0),
+            MouseButton::Left => (MOUSEEVENTF_LEFTDOWN, MOUSEEVENTF_LEFTUP),
+            MouseButton::Right => (MOUSEEVENTF_RIGHTDOWN, MOUSEEVENTF_RIGHTUP),
+            MouseButton::Middle => (MOUSEEVENTF_MIDDLEDOWN, MOUSEEVENTF_MIDDLEUP),
+            MouseButton::Back => (MOUSEEVENTF_XDOWN, MOUSEEVENTF_XUP),
+            MouseButton::Forward => (MOUSEEVENTF_XDOWN, MOUSEEVENTF_XUP),
         }
     }
 
@@ -101,7 +101,7 @@ impl InputSimulator for WindowsSimulator {
         let normalized_x = (x as f64 / screen_width as f64 * 65535.0) as i32;
         let normalized_y = (y as f64 / screen_height as f64 * 65535.0) as i32;
 
-        self.send_mouse_input(MOUSEEVENTF_MOVE.0, 0, normalized_x, normalized_y)
+        self.send_mouse_input(MOUSEEVENTF_MOVE, 0, normalized_x, normalized_y)
     }
 
     fn simulate_mouse_button(&self, button: MouseButton, pressed: bool) -> Result<()> {
@@ -117,7 +117,7 @@ impl InputSimulator for WindowsSimulator {
         // Positive delta_y = scroll up
         let wheel_delta = (delta_y * 120) as u32;
 
-        self.send_mouse_input(MOUSEEVENTF_WHEEL.0, wheel_delta, 0, 0)
+        self.send_mouse_input(MOUSEEVENTF_WHEEL, wheel_delta, 0, 0)
     }
 
     fn simulate_key(&self, key: &str, pressed: bool, modifiers: KeyModifiers) -> Result<()> {
