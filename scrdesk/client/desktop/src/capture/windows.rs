@@ -9,8 +9,12 @@ pub struct WindowsCapturer {
     capturer: scrap::Capturer,
 }
 
+// Safety: scrap::Capturer uses raw pointers internally but is safe to send between threads
+// as it only accesses thread-local Windows graphics resources
+unsafe impl Send for WindowsCapturer {}
+
 impl WindowsCapturer {
-    pub fn new() -> Result<()> {
+    pub fn new() -> Result<Self> {
         let display = scrap::Display::primary()
             .context("Failed to get primary display")?;
 

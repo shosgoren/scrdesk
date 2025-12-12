@@ -47,7 +47,12 @@ uuid = { version = "1.6", features = ["v4"] }
 # Platform-specific
 [target.'cfg(windows)'.dependencies]
 winapi = { version = "0.3", features = ["winuser", "wingdi", "d3d11", "errhandlingapi"] }
-windows = { version = "0.52", features = ["Win32_Graphics_Gdi", "Win32_UI_Input_KeyboardAndMouse"] }
+windows = { version = "0.52", features = [
+    "Win32_Graphics_Gdi",
+    "Win32_UI_Input_KeyboardAndMouse",
+    "Win32_UI_WindowsAndMessaging",
+    "Win32_System_SystemInformation"
+] }
 
 [target.'cfg(target_os = "macos")'.dependencies]
 cocoa = "0.25"

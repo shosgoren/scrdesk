@@ -8,8 +8,12 @@ use windows::Win32::UI::Input::KeyboardAndMouse::{
     MOUSEEVENTF_RIGHTDOWN, MOUSEEVENTF_RIGHTUP, MOUSEEVENTF_WHEEL, MOUSEEVENTF_XDOWN,
     MOUSEEVENTF_XUP, MOUSEINPUT, VIRTUAL_KEY, VK_BACK, VK_CONTROL, VK_DELETE, VK_DOWN,
     VK_END, VK_ESCAPE, VK_HOME, VK_LEFT, VK_MENU, VK_NEXT, VK_PRIOR, VK_RETURN, VK_RIGHT,
-    VK_SHIFT, VK_SPACE, VK_TAB, VK_UP, XBUTTON1, XBUTTON2,
+    VK_SHIFT, VK_SPACE, VK_TAB, VK_UP,
 };
+
+// XBUTTON constants for extended mouse buttons
+const XBUTTON1: u16 = 0x0001;
+const XBUTTON2: u16 = 0x0002;
 
 pub struct WindowsSimulator;
 
@@ -20,14 +24,14 @@ impl WindowsSimulator {
 
     fn send_mouse_input(&self, flags: u32, data: u32, dx: i32, dy: i32) -> Result<()> {
         unsafe {
-            let mut input = INPUT {
+            let input = INPUT {
                 r#type: INPUT_MOUSE,
                 Anonymous: INPUT_0 {
                     mi: MOUSEINPUT {
                         dx,
                         dy,
                         mouseData: data,
-                        dwFlags: MOUSEEVENTF_ABSOLUTE | flags,
+                        dwFlags: MOUSEEVENTF_ABSOLUTE | flags.into(),
                         time: 0,
                         dwExtraInfo: 0,
                     },
@@ -45,7 +49,7 @@ impl WindowsSimulator {
 
     fn send_keyboard_input(&self, vk: VIRTUAL_KEY, flags: KEYBD_EVENT_FLAGS) -> Result<()> {
         unsafe {
-            let mut input = INPUT {
+            let input = INPUT {
                 r#type: INPUT_KEYBOARD,
                 Anonymous: INPUT_0 {
                     ki: KEYBDINPUT {
@@ -80,8 +84,8 @@ impl WindowsSimulator {
 
     fn get_mouse_data(&self, button: MouseButton) -> u32 {
         match button {
-            MouseButton::Back => XBUTTON1.0 as u32,
-            MouseButton::Forward => XBUTTON2.0 as u32,
+            MouseButton::Back => XBUTTON1 as u32,
+            MouseButton::Forward => XBUTTON2 as u32,
             _ => 0,
         }
     }
